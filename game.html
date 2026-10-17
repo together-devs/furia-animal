@@ -124,13 +124,13 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 .who{font-size:12px;font-weight:900;opacity:.85;text-transform:uppercase;letter-spacing:1px}
 .fname{font-family:var(--display);font-size:clamp(17px,5.2vw,24px);line-height:1.05;text-shadow:0 3px 0 var(--ink);overflow-wrap:anywhere}
 .badge{display:inline-block;font-size:11px;font-weight:900;padding:2px 8px;border-radius:8px;border:2px solid var(--ink);background:var(--g2);text-shadow:0 1px 0 #000}
-.hp{display:flex;flex-direction:row;flex-wrap:nowrap;gap:3px;align-items:center}
-.fighter.top .hp{flex-direction:row-reverse}
-.pip{flex:none;width:clamp(10px,3.2vw,17px);height:16px;border-radius:5px;border:2px solid var(--ink);background:#0007;transition:background .3s}
-.pip.f{background:linear-gradient(180deg,#9cff7a,#2fbf1f)}
-.hp.hp-mid .pip.f{background:linear-gradient(180deg,#ffe36b,#e6a100)}
-.hp.hp-low .pip.f{background:linear-gradient(180deg,#ff8a7a,#d8231f)}
-.hpn{font-family:var(--display);font-size:20px;margin:0 6px;text-shadow:0 2px 0 var(--ink);font-variant-numeric:tabular-nums}
+.hp{display:flex;align-items:center;width:100%;max-width:230px}
+.fighter.top .hp{align-self:flex-end}
+.hpb{position:relative;z-index:2;flex:none;min-width:36px;height:36px;padding:0 5px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:3px solid #0d1a33;background:linear-gradient(180deg,var(--hb1),var(--hb2));font-family:var(--display);font-size:23px;line-height:1;color:#fff;text-shadow:0 2px 0 #0d1a33;-webkit-text-stroke:1px #0d1a33;box-shadow:inset 0 3px 0 rgba(255,255,255,.4),0 3px 0 #0d1a33;margin-right:-9px;font-variant-numeric:tabular-nums}
+.hpt{flex:1;min-width:0;height:22px;border:3px solid #0d1a33;border-radius:0 8px 8px 0;background:#1a2747;overflow:hidden;box-shadow:0 3px 0 #0d1a33}
+.hpf{display:block;height:100%;background:linear-gradient(180deg,var(--hf1) 0 34%,var(--hf2) 34% 100%);box-shadow:inset -2px 0 0 rgba(0,0,0,.25);transition:width .35s ease-out}
+.hp.blue{--hb1:#6db6ff;--hb2:#2563d4;--hf1:#a9e2ff;--hf2:#3c9bec}
+.hp.red{--hb1:#ff7d6b;--hb2:#c8261f;--hf1:#ffb9ad;--hf2:#e9473b}
 .mid{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
 .turn{font-family:var(--display);font-size:18px;padding:6px 16px;border-radius:999px;border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);background:var(--blue)}
 .turn.mine{background:var(--green)}
@@ -194,6 +194,17 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
     </div>
   </section>
 
+  <!-- CPU LEVEL -->
+  <section class="screen" id="s-level" hidden>
+    <div class="center">
+      <div class="t" style="font-size:34px;text-align:center">Elegí el nivel</div>
+      <button class="btn b-green" data-lvl="f">Fácil<small>La máquina se equivoca y no usa escudo</small></button>
+      <button class="btn b-gold" data-lvl="m">Medio<small>Ataca bien y a veces usa el escudo</small></button>
+      <button class="btn b-red" data-lvl="d">Difícil<small>Piensa cada jugada y siempre es más rápida</small></button>
+      <button class="btn b-blue" data-back>Volver</button>
+    </div>
+  </section>
+
   <!-- ONLINE MENU -->
   <section class="screen" id="s-online" hidden>
     <div class="center">
@@ -253,7 +264,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v9';
+const VERSION='v11';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -427,13 +438,22 @@ function act(a){
 }
 function start(mode){
   readName();MODE=mode;ME=0;animSeq=0;spunId=null;introId=null;shown=null;busy=false;
-  if(mode==='cpu')setState(newGame([myName,'La Máquina']));
+  if(mode==='cpu')setState(cpuGame());
   if(mode==='hot')setState(newGame([myName,'Jugador 2']));
+}
+let LVL='m';
+const LVLN={f:'fácil',m:'medio',d:'difícil'};
+function cpuGame(){
+  const S=newGame([myName,'Máquina ('+LVLN[LVL]+')']);
+  if(LVL==='d'){let n=0;while(A[S.p[1].a].s<A[S.p[0].a].s&&n++<40){let b=ri(A.length);if(b!==S.p[0].a)S.p[1].a=b}
+    const s0=A[S.p[0].a].s,s1=A[S.p[1].a].s;S.tie=s0===s1;S.turn=s0>s1?0:s1>s0?1:ri(2)}
+  if(LVL==='f'){let n=0;while(A[S.p[1].a].s>A[S.p[0].a].s&&n++<40){let b=ri(A.length);if(b!==S.p[0].a)S.p[1].a=b}S.tie=false;S.turn=0}
+  return S;
 }
 function rematch(){
   closeOver();
   if(MODE==='guest'){sendGuest({k:'again'});return}
-  animSeq=0;shown=null;setState(newGame(S.names));
+  animSeq=0;shown=null;setState(MODE==='cpu'?cpuGame():newGame(S.names));
 }
 function toMenu(){closeOver();leaveRoom();MODE=null;S=null;clearTimeout(cpuTimer);show('s-home')}
 
@@ -494,12 +514,12 @@ async function doSpin(){
 /* ---------- BATTLE DRAW ---------- */
 function fighterHTML(idx,top){
   const p=shown[idx],actorNow=MODE==='hot'?S.turn:ME,shOn=(p.def&&owns(idx))||(armDef&&idx===actorNow&&S.turn===idx),a=A[p.a],hp=p.hp,cls=hp<=3?'hp-low':hp<=6?'hp-mid':'';
-  let pips='';for(let i=0;i<10;i++)pips+=`<i class="pip${i<hp?' f':''}"></i>`;
+  const team=(MODE==='hot'?idx===0:idx===ME)?'blue':'red';
   const label=MODE==='hot'?S.names[idx]:(idx===ME?S.names[idx]+' · vos':S.names[idx]);
   return`<div class="por" style="${gstyle(p.a)}">${emo(p.a)}<div class="shield${shOn?' on':''}"></div></div>
   <div class="info" style="${gstyle(p.a)}"><div class="who">${esc(label)}</div><div class="fname">${esc(a.n)}</div>
   <div><span class="badge">${GROUPS[a.g].n} · vel ${a.s}</span></div>
-  <div class="hp ${cls}">${pips}<span class="hpn">${hp}</span></div></div>`;
+  <div class="hp ${team}"><span class="hpb">${hp}</span><span class="hpt"><span class="hpf" style="width:${hp*10}%"></span></span></div></div>`;
 }
 function drawBattle(){
   const opp=1-ME;
@@ -560,7 +580,7 @@ function animate(L){
   if(L.heal)setTimeout(()=>{SFX.heal();floatTxt(attPor,'+1','heal');shown[L.by].hp=S.p[L.by].hp;updateHp(att,shown[L.by].hp)},400+L.dm.length*230);
   done(900+L.dm.length*230);
 }
-function updateHp(f,hp){const box=f.querySelector('.hp');box.className='hp '+(hp<=3?'hp-low':hp<=6?'hp-mid':'');box.querySelectorAll('.pip').forEach((p,i)=>p.classList.toggle('f',i<hp));box.querySelector('.hpn').textContent=hp}
+function updateHp(f,hp){const box=f.querySelector('.hp');box.querySelector('.hpf').style.width=(hp*10)+'%';box.querySelector('.hpb').textContent=hp}
 
 /* ---------- CPU ---------- */
 function scheduleCpu(){
@@ -569,9 +589,26 @@ function scheduleCpu(){
     if(!S||MODE!=='cpu'||S.seq!==id||S.turn!==1||busy||S.phase!=='battle')return;
     const me=S.p[1],op=S.p[0],at=A[me.a].atk;
     const opts=[0,1,2].filter(i=>!me.used.includes(i));
-    const score=i=>{const t=at[i].t;if(op.hp<=3)return{G:5,F:3,V:3,R:2,C:2}[t];return{F:4,G:4,V:3,C:2,R:2}[t]+Math.random()*2};
-    opts.sort((x,y)=>score(y)-score(x));
-    const choice={k:'atk',i:opts[0],d:!me.def&&me.dc<2&&Math.random()<(me.hp<=5?.45:.22)};
+    const canSh=!me.def&&me.dc<2;let choice;
+    if(LVL==='f'){
+      const weak={R:0,C:1,V:2,F:3,G:4};opts.sort((x,y)=>weak[at[x].t]-weak[at[y].t]);
+      choice={k:'atk',i:Math.random()<.6?opts[0]:opts[ri(opts.length)],d:false};
+    }else if(LVL==='m'){
+      const score=i=>{const t=at[i].t;if(op.hp<=3)return{G:5,F:3,V:3,R:2,C:2}[t];return{F:4,G:4,V:3,C:2,R:2}[t]+Math.random()*2};
+      opts.sort((x,y)=>score(y)-score(x));
+      choice={k:'atk',i:opts[0],d:canSh&&Math.random()<(me.hp<=5?.45:.22)};
+    }else{
+      // difícil: remata, se cura cuando está bajo y pone escudo si el rival tiene un golpe fuerte guardado
+      const sure={G:3,R:2,V:2,C:2,F:0},avg={G:3,F:2.8,R:2,V:2.6,C:2.5};
+      const score=i=>{const t=at[i].t;
+        if(sure[t]>=op.hp)return 100+sure[t];
+        let v=avg[t];if(t==='V'&&me.hp<=6)v+=1.5;if(t==='F'&&op.hp===4)v+=.8;return v+Math.random()*.3};
+      opts.sort((x,y)=>score(y)-score(x));
+      const opAt=A[op.a].atk,opLeft=[0,1,2].filter(i=>!op.used.includes(i)).map(i=>opAt[i].t);
+      const danger=opLeft.includes('F')||opLeft.includes('G');
+      const dying=me.hp<=4;
+      choice={k:'atk',i:opts[0],d:canSh&&score(opts[0])<100&&(dying||(danger&&(me.hp<=7||me.dc===0&&Math.random()<.5)))};
+    }
     const ns=clone(S);applyAct(ns,1,choice);setState(ns);
   },1000);
 }
@@ -694,7 +731,8 @@ function guestMsg(d){
 function sendGuest(a){myN++;pub('g',{t:a.k==='again'?'again':'act',gid,n:myN,k:a.k,i:a.i??null,sh:a.d?1:0});setTimeout(()=>{if(busy&&S&&!(S.log&&S.log.seq>animSeq)){busy=false;drawBattle()}},4000)}
 
 /* ---------- WIRING ---------- */
-$('go-cpu').onclick=()=>{audio();start('cpu')};
+$('go-cpu').onclick=()=>{audio();readName();show('s-level')};
+document.querySelectorAll('[data-lvl]').forEach(b=>b.onclick=()=>{audio();LVL=b.dataset.lvl;start('cpu')});
 $('go-hot').onclick=()=>{audio();start('hot')};
 $('go-online').onclick=()=>{audio();readName();show('s-online')};
 const inviteLink=()=>location.origin+location.pathname+'#sala'+code;
