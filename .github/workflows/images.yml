@@ -30,7 +30,8 @@ jobs:
           IMG_MODEL: ${{ inputs.modelo }}
         run: python app/gen_images.py "${{ inputs.animales }}"
       - name: Subir al repo y publicar
-        env: { GH_TOKEN: ${{ github.token }} }
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "Furia Animal bot"
           git config user.email "actions@github.com"
