@@ -194,6 +194,20 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
     </div>
   </section>
 
+  <!-- INVITE (link de WhatsApp) -->
+  <section class="screen" id="s-invite" hidden>
+    <div class="center">
+      <div class="logo" style="margin-top:0"><h1 style="font-size:clamp(40px,12vw,60px)">FURIA<br>ANIMAL</h1></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:14px">
+        <div class="t" id="inv-who" style="font-size:28px;text-align:center">¡Te desafiaron!</div>
+        <div class="muted" id="inv-room">Sala</div>
+        <div class="namebox"><label for="nm2">Tu nombre</label><input id="nm2" maxlength="14" placeholder="Pon tu nombre" autocomplete="off" enterkeyhint="go"></div>
+        <button class="btn b-green" id="inv-go">¡Entrar a pelear!</button>
+      </div>
+      <button class="btn b-blue" data-back>Ir al menú</button>
+    </div>
+  </section>
+
   <!-- CPU LEVEL -->
   <section class="screen" id="s-level" hidden>
     <div class="center">
@@ -264,7 +278,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v11';
+const VERSION='v12';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -735,16 +749,21 @@ $('go-cpu').onclick=()=>{audio();readName();show('s-level')};
 document.querySelectorAll('[data-lvl]').forEach(b=>b.onclick=()=>{audio();LVL=b.dataset.lvl;start('cpu')});
 $('go-hot').onclick=()=>{audio();start('hot')};
 $('go-online').onclick=()=>{audio();readName();show('s-online')};
-const inviteLink=()=>location.origin+location.pathname+'#sala'+code;
+const inviteLink=()=>location.origin+location.pathname+'#sala'+code+'-'+encodeURIComponent(myName);
 const inviteText=()=>'¡Te desafío en Furia Animal! 🦖⚔️ Tocá el link y entrás directo a mi sala:\n'+inviteLink();
 function openWA(){window.open('https://wa.me/?text='+encodeURIComponent(inviteText()),'_blank')}
 $('go-wa').onclick=()=>{audio();hostGame();openWA()};
 $('wa').onclick=openWA;
 $('copy').onclick=()=>{const t=inviteLink();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Link copiado',1800)).catch(()=>toast(t,6000))};
-(function autoJoin(){const m=(location.hash||'').match(/^#sala(\d{4})$/);if(!m)return;
+(function invite(){const m=(location.hash||'').match(/^#sala(\d{4})(?:-(.*))?$/);if(!m)return;
   try{history.replaceState(null,'',location.pathname)}catch(e){}
-  if(!$('nm').value)$('nm').value='Amigo';
-  $('code').value=m[1];joinGame()})();
+  let who='';try{who=decodeURIComponent(m[2]||'').slice(0,14)}catch(e){}
+  $('inv-who').textContent=who?'¡'+who+' te desafía!':'¡Te desafiaron!';
+  $('inv-room').textContent='Sala '+m[1];
+  $('nm2').value=$('nm').value;$('code').value=m[1];
+  const go=()=>{audio();$('nm').value=$('nm2').value.trim()||'Amigo';joinGame()};
+  $('inv-go').onclick=go;$('nm2').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go()}};
+  show('s-invite')})();
 $('host').onclick=hostGame;$('join').onclick=joinGame;
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=toMenu);
 </script>
