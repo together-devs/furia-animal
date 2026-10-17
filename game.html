@@ -253,7 +253,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v8';
+const VERSION='v9';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -406,8 +406,8 @@ function replay(el,cls){el.classList.remove(cls);void el.offsetWidth;el.classLis
 $('ver').textContent=VERSION;
 $('parade').textContent=(A.map(a=>a.e).join(' ')+' ').repeat(2);
 let myName='Jugador';
-try{const v=localStorage.getItem('fa_name');if(v)$('nm').value=v}catch(e){}
-function readName(){myName=($('nm').value||'').trim().slice(0,14)||'Jugador';try{localStorage.setItem('fa_name',myName)}catch(e){}}
+try{localStorage.removeItem('fa_name');const v=localStorage.getItem('fa_nm');if(v)$('nm').value=v}catch(e){}
+function readName(){const t=($('nm').value||'').trim().slice(0,14);myName=t||'Jugador';try{if(t)localStorage.setItem('fa_nm',t)}catch(e){}}
 
 /* ---------- CONTROLLER ---------- */
 let MODE=null,ME=0,S=null,shown=null,animSeq=0,busy=false,spunId=null,spinning=false,introId=null,cpuTimer=null;
@@ -705,7 +705,7 @@ $('wa').onclick=openWA;
 $('copy').onclick=()=>{const t=inviteLink();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Link copiado',1800)).catch(()=>toast(t,6000))};
 (function autoJoin(){const m=(location.hash||'').match(/^#sala(\d{4})$/);if(!m)return;
   try{history.replaceState(null,'',location.pathname)}catch(e){}
-  try{if(!localStorage.getItem('fa_name'))$('nm').value='Amigo'}catch(e){$('nm').value='Amigo'}
+  if(!$('nm').value)$('nm').value='Amigo';
   $('code').value=m[1];joinGame()})();
 $('host').onclick=hostGame;$('join').onclick=joinGame;
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=toMenu);
