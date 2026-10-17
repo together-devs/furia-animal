@@ -239,7 +239,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
   </section>
 </div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
 const GROUPS={
@@ -591,58 +592,95 @@ function confetti(){
   confettiStop=()=>{run=false;c.remove()};
 }
 
-/* ---------- ONLINE (PeerJS, celular a celular) ---------- */
-let peer=null,conn=null,code=null,leaving=false,joinTimer=null;
-const PID=c=>'furia-animal-tino-'+c;
-function leaveRoom(){leaving=true;clearTimeout(joinTimer);try{conn&&conn.close()}catch(e){}try{peer&&peer.destroy()}catch(e){}conn=null;peer=null;setTimeout(()=>leaving=false,300)}
+/* ---------- ONLINE (MQTT por dos servidores públicos a la vez) ---------- */
+const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
+let cls=[],base=null,hb=null,joinTimer=null,leaving=false,code=null,guestId=null,lastN=0,lastSeen=0,gid=null,myN=0,hostSeen=false;
+const rid=()=>Math.random().toString(36).slice(2,10);
+function netConnect(sub,onMsg){
+  return new Promise(res=>{
+    if(!window.mqtt)return res(false);
+    let ok=false;const done=v=>{if(!ok){ok=true;res(v)}};
+    BROKERS.forEach(u=>{try{
+      const c=mqtt.connect(u,{clientId:'fa_'+rid(),clean:true,connectTimeout:7000,reconnectPeriod:2500,keepalive:30});
+      c.on('connect',()=>{c.subscribe(base+'/'+sub,{qos:1});done(true)});
+      c.on('message',(t,p)=>{if(!p||!p.length)return;let d;try{d=JSON.parse(p.toString())}catch(e){return}if(d&&typeof d==='object')onMsg(d)});
+      c.on('error',()=>{});
+      cls.push(c);
+    }catch(e){}});
+    setTimeout(()=>done(false),9000);
+  });
+}
+function pub(sub,d,retain){const m=JSON.stringify(d);cls.forEach(c=>{if(c.connected)c.publish(base+'/'+sub,m,{qos:1,retain:!!retain})})}
+function leaveRoom(){
+  leaving=true;clearInterval(hb);clearTimeout(joinTimer);
+  if(base&&cls.length){if(MODE==='host')pub('h',{t:'closed',ts:Date.now()},true);else if(MODE==='guest')pub('g',{t:'bye',gid})}
+  const old=cls;cls=[];setTimeout(()=>old.forEach(c=>{try{c.end(true)}catch(e){}}),500);
+  setTimeout(()=>leaving=false,300);
+}
 function lost(msg){if(leaving||!MODE)return;toast(msg);toMenu()}
 function noNet(){toast('No pude conectar. Revisá que tengas internet y probá de nuevo.',5000)}
-function hostGame(){
-  readName();if(!window.Peer)return noNet();
-  leaveRoom();leaving=false;code=String(1000+ri(9000));
-  MODE='host';ME=0;S={phase:'lobby',id:0,names:[myName,'']};spunId=null;introId=null;
+async function hostGame(){
+  readName();if(!window.mqtt)return noNet();
+  leaveRoom();leaving=false;code=String(1000+ri(9000));base='furiaanimal-tino/'+code;
+  MODE='host';ME=0;S={phase:'lobby',id:0,names:[myName,'']};spunId=null;introId=null;guestId=null;lastN=0;
   $('lobby-top').textContent='Pasale este código a tu amigo';$('lobby-code').textContent=code;
   $('lobby-msg').innerHTML='<span class="dots">Creando sala</span>';show('s-lobby');
-  peer=new Peer(PID(code));
-  peer.on('open',()=>{$('lobby-msg').innerHTML='<span class="dots">Esperando rival</span><br><small>Tu amigo abre esta misma página, toca "Contra un amigo online" y pone el código.</small>'});
-  peer.on('error',e=>{if(e.type==='unavailable-id'){hostGame()}else if(!conn)noNet()});
-  peer.on('connection',c=>{
-    if(conn&&conn.open){c.on('open',()=>c.close());return}
-    conn=c;
-    c.on('data',d=>{
-      if(!d||typeof d!=='object')return;
-      if(d.t==='hello'){if(S.phase==='lobby'){SFX.land();animSeq=0;setState(newGame([myName,String(d.nm||'Rival').slice(0,14)]))}else pushHost()}
-      else if(d.t==='again'){if(S.phase==='over'){closeOver();animSeq=0;setState(newGame(S.names))}}
-      else if(d.t==='act'){const ns=clone(S);if(applyAct(ns,1,{k:d.k,i:d.i}))setState(ns);else pushHost()}
-    });
-    c.on('close',()=>lost('Tu rival se fue.'));
-  });
+  const ok=await netConnect('g',hostMsg);
+  if(MODE!=='host')return;
+  if(!ok){noNet();return toMenu()}
+  pub('h',{t:'lobby',ts:Date.now()},true);
+  $('lobby-msg').innerHTML='<span class="dots">Esperando rival</span><br><small>Tu amigo abre esta misma página, toca "Contra un amigo online" y pone el código.</small>';
+  hb=setInterval(()=>{
+    if(S.phase==='lobby')pub('h',{t:'lobby',ts:Date.now()},true);else pushHost();
+    if(guestId&&Date.now()-lastSeen>35000)lost('Tu rival se fue.');
+  },8000);
 }
-function pushHost(){if(conn&&conn.open)conn.send({t:'st',st:S})}
-function joinGame(){
+function hostMsg(d){
+  if(d.t==='hello'){
+    if(!guestId&&S.phase==='lobby'){guestId=d.gid;lastSeen=Date.now();lastN=0;SFX.land();animSeq=0;setState(newGame([myName,String(d.nm||'Rival').slice(0,14)]))}
+    else if(d.gid===guestId){lastSeen=Date.now();pushHost()}
+    return;
+  }
+  if(!guestId||d.gid!==guestId)return;
+  lastSeen=Date.now();
+  if(d.t==='ping')return;
+  if(d.t==='bye')return lost('Tu rival se fue.');
+  if(!(d.n>lastN))return;lastN=d.n;
+  if(d.t==='again'){if(S.phase==='over'){closeOver();animSeq=0;setState(newGame(S.names))}return}
+  if(d.t==='act'){const ns=clone(S);if(applyAct(ns,1,{k:d.k,i:d.i}))setState(ns);else pushHost()}
+}
+function pushHost(){if(base)pub('h',{t:'st',st:S,gid:guestId,ts:Date.now()},true)}
+async function joinGame(){
   readName();const c=($('code').value||'').replace(/\D/g,'');
   if(c.length!==4)return toast('El código tiene 4 números.');
-  if(!window.Peer)return noNet();
-  leaveRoom();leaving=false;
-  MODE='guest';ME=1;S=null;spunId=null;introId=null;animSeq=0;
+  if(!window.mqtt)return noNet();
+  leaveRoom();leaving=false;base='furiaanimal-tino/'+c;
+  MODE='guest';ME=1;S=null;spunId=null;introId=null;animSeq=0;gid=rid();myN=0;hostSeen=false;
   $('lobby-top').textContent='Sala';$('lobby-code').textContent=c;$('lobby-msg').innerHTML='<span class="dots">Conectando</span>';
   show('s-lobby');
-  peer=new Peer();
-  joinTimer=setTimeout(()=>{if(!S)lost('No encontré esa sala. Revisá el código.')},12000);
-  peer.on('error',e=>{if(e.type==='peer-unavailable')lost('No encontré esa sala. Revisá el código.');else if(!S)lost('No pude conectar. Probá de nuevo.')});
-  peer.on('open',()=>{
-    conn=peer.connect(PID(c),{reliable:true});
-    conn.on('open',()=>conn.send({t:'hello',nm:myName}));
-    conn.on('data',d=>{
-      if(!d||d.t!=='st'||!d.st||d.st.phase==='lobby')return;const st=d.st;
-      if(!S||st.seq!==S.seq||st.id!==S.id||st.phase!==S.phase){
-        if(S&&st.id!==S.id)closeOver();
-        S=st;if(!(S.log&&S.log.seq>animSeq))busy=false;render()}
-    });
-    conn.on('close',()=>lost('Tu rival se fue.'));
-  });
+  const ok=await netConnect('h',guestMsg);
+  if(MODE!=='guest')return;
+  if(!ok){noNet();return toMenu()}
+  pub('g',{t:'hello',gid,nm:myName});
+  joinTimer=setTimeout(()=>{if(!hostSeen)lost('No encontré esa sala. Revisá el código.')},12000);
+  hb=setInterval(()=>{
+    pub('g',S?{t:'ping',gid}:{t:'hello',gid,nm:myName});
+    if(hostSeen&&Date.now()-lastSeen>35000)lost('Tu rival se fue.');
+  },8000);
 }
-function sendGuest(a){if(conn&&conn.open)conn.send(a.k==='again'?{t:'again'}:{t:'act',k:a.k,i:a.i??null});setTimeout(()=>{if(busy&&S&&!(S.log&&S.log.seq>animSeq)){busy=false;drawBattle()}},4000)}
+function guestMsg(d){
+  if(d.ts&&Date.now()-d.ts>90000)return;
+  if(d.t==='closed'){if(hostSeen)lost('Tu rival se fue.');return}
+  if(d.t==='lobby'){hostSeen=true;lastSeen=Date.now();if(!S)pub('g',{t:'hello',gid,nm:myName});return}
+  if(d.t!=='st'||!d.st)return;
+  if(d.gid!==gid){if(!S)lost('Esa sala ya tiene dos jugadores.');return}
+  hostSeen=true;lastSeen=Date.now();
+  const st=d.st;if(st.phase==='lobby')return;
+  if(!S||st.seq!==S.seq||st.id!==S.id||st.phase!==S.phase){
+    if(S&&st.id!==S.id)closeOver();
+    S=st;if(!(S.log&&S.log.seq>animSeq))busy=false;render()}
+}
+function sendGuest(a){myN++;pub('g',{t:a.k==='again'?'again':'act',gid,n:myN,k:a.k,i:a.i??null});setTimeout(()=>{if(busy&&S&&!(S.log&&S.log.seq>animSeq)){busy=false;drawBattle()}},4000)}
 
 /* ---------- WIRING ---------- */
 $('go-cpu').onclick=()=>{audio();start('cpu')};
