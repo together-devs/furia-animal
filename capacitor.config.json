@@ -1,0 +1,6 @@
+{
+  "appId": "com.togetherdevs.furiaanimal",
+  "appName": "Furia Animal",
+  "webDir": "www",
+  "ios": { "contentInset": "never", "backgroundColor": "#1556c4" }
+}

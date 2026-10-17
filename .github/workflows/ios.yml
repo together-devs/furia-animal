@@ -1,0 +1,81 @@
+name: iOS → TestFlight
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['game.html', 'app/**', 'capacitor.config.json', '.github/workflows/ios.yml']
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with: { xcode-version: latest-stable }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: Armar la web de la app
+        run: |
+          mkdir -p www
+          cp game.html www/index.html
+          cp apple-touch-icon.png icon-192.png icon-512.png favicon-32.png manifest.json www/
+
+      - name: Proyecto iOS (Capacitor)
+        run: |
+          npm install --no-audit --no-fund
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Ícono, nombre y cumplimiento de exportación
+        run: |
+          ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset
+          for f in $ICON/*.png; do sips -s format png -z 1024 1024 app/icon-1024.png --out "$f" >/dev/null; done
+          PL=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Furia Animal" $PL || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Furia Animal" $PL
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $PL || true
+
+      - name: Clave de App Store Connect
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p ~/private_keys
+          printf '%s\n' "$ASC_KEY_P8" > ~/private_keys/AuthKey_$ASC_KEY_ID.p8
+
+      - name: Compilar y firmar
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" archive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_$ASC_KEY_ID.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            PRODUCT_BUNDLE_IDENTIFIER=com.togetherdevs.furiaanimal \
+            MARKETING_VERSION=1.0 CURRENT_PROJECT_VERSION=${{ github.run_number }}
+
+      - name: Subir a TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_$ASC_KEY_ID.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
