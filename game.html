@@ -280,7 +280,7 @@ img.em.im{display:block;width:88%;height:88%;object-fit:contain;filter:drop-shad
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v18';
+const VERSION='v19';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -498,7 +498,7 @@ $('ver').textContent=VERSION;
 $('parade').textContent=(A.map(a=>a.e).join(' ')+' ').repeat(2);
 let myName='Jugador';
 try{localStorage.removeItem('fa_name');const v=localStorage.getItem('fa_nm');if(v)$('nm').value=v}catch(e){}
-function readName(){const t=($('nm').value||'').trim().slice(0,14);myName=t||'Jugador';try{if(t)localStorage.setItem('fa_nm',t)}catch(e){}}
+function readName(){const t=($('nm').value||'').trim().slice(0,14);myName=t||'Jugador';statVisitName(myName);try{if(t)localStorage.setItem('fa_nm',t)}catch(e){}}
 
 /* ---------- CONTROLLER ---------- */
 let MODE=null,ME=0,S=null,shown=null,animSeq=0,busy=false,spunId=null,spinning=false,introId=null,cpuTimer=null;
@@ -544,7 +544,7 @@ function render(){
   if(spinning)return;
   if(S.phase==='spin')return;
   show('s-battle');
-  if(introId!==S.id){introId=S.id;shown=clone(S.p);drawBattle();
+  if(introId!==S.id){introId=S.id;shown=clone(S.p);drawBattle();statPlay();
     const f=S.p[S.turn],o=S.p[1-S.turn];
     const why=S.tie?'¡Sorteo! ':'⚡ '+A[f.a].n+' es más rápido. ';
     busy=true;banner(`${esc(why)}<br><span>¡Empieza ${esc(S.names[S.turn])}!</span>`,1900);SFX.land();
@@ -810,6 +810,40 @@ function guestMsg(d){
 }
 function sendGuest(a){myN++;pub('g',{t:a.k==='again'?'again':'act',gid,n:myN,k:a.k,i:a.i??null,sh:a.d?1:0});setTimeout(()=>{if(busy&&S&&!(S.log&&S.log.seq>animSeq)){busy=false;drawBattle()}},4000)}
 
+/* ---------- STATS (Firebase Realtime Database; se apaga solo si no hay config) ---------- */
+const FB_CONFIG=null; // se completa con la config del proyecto Firebase
+const ST={db:null,ok:false,sid:Math.random().toString(36).slice(2,12),names:new Set(),q:[]};
+const BOGUS=/^(jugador|jugador 2|amigo|rival)$/i;
+const today=()=>new Date(Date.now()-3*3600e3).toISOString().slice(0,10); // día de Argentina
+const nslug=n=>n.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30);
+const INC=()=>firebase.database.ServerValue.increment(1);
+function stat(fn){if(ST.ok){try{fn(ST.db)}catch(e){}}else if(FB_CONFIG)ST.q.push(fn)}
+function statsInit(){
+  if(!FB_CONFIG)return;
+  const load=src=>new Promise((res,rej)=>{const x=document.createElement('script');x.src=src;x.onload=res;x.onerror=rej;document.head.appendChild(x)});
+  const B='https://www.gstatic.com/firebasejs/10.12.2/';
+  load(B+'firebase-app-compat.js').then(()=>load(B+'firebase-database-compat.js')).then(()=>{
+    firebase.initializeApp(FB_CONFIG);ST.db=firebase.database();ST.ok=true;
+    const me=ST.db.ref('presence/'+ST.sid);
+    const beat=()=>me.set({t:firebase.database.ServerValue.TIMESTAMP,m:MODE||'menu'});
+    me.onDisconnect().remove();beat();setInterval(()=>{if(!document.hidden)beat()},60000);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)me.remove();else{me.onDisconnect().remove();beat()}});
+    ST.db.ref('days/'+today()+'/visits').set(INC());
+    const q=ST.q;ST.q=[];q.forEach(f=>{try{f(ST.db)}catch(e){}});
+  }).catch(()=>{});
+}
+function statName(n,field){
+  n=String(n||'').trim().slice(0,14);if(!n||BOGUS.test(n)||/^Máquina/.test(n))return;
+  const k=nslug(n);if(!k)return;
+  stat(db=>db.ref('names/'+k).update({n,[field]:INC(),last:firebase.database.ServerValue.TIMESTAMP}));
+}
+function statVisitName(n){const k=nslug(String(n||''));if(!k||ST.names.has(k)||BOGUS.test(n))return;ST.names.add(k);statName(n,'v')}
+function statPlay(){
+  if(MODE!=='guest')stat(db=>db.ref('days/'+today()+'/plays').set(INC()));
+  if(MODE==='hot'){statName(S.names[0],'p');statName(S.names[1],'p')}else statName(myName,'p');
+  stat(db=>db.ref('presence/'+ST.sid+'/m').set(MODE));
+}
+
 /* ---------- WIRING ---------- */
 $('go-cpu').onclick=()=>{audio();readName();show('s-level')};
 document.querySelectorAll('[data-lvl]').forEach(b=>b.onclick=()=>{audio();LVL=b.dataset.lvl;start('cpu')});
@@ -832,6 +866,7 @@ $('copy').onclick=()=>{const t=inviteLink();(navigator.clipboard?navigator.clipb
   show('s-invite')})();
 $('host').onclick=hostGame;$('join').onclick=joinGame;
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=toMenu);
+statsInit();
 </script>
 
 </body>

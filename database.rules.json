@@ -1,0 +1,31 @@
+{
+  "rules": {
+    "presence": {
+      ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      "$sid": {
+        ".write": "$sid.length <= 20",
+        ".validate": "!newData.exists() || newData.hasChildren(['t'])"
+      }
+    },
+    "days": {
+      ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      "$day": {
+        "$k": {
+          ".write": "($k === 'visits' || $k === 'plays') && $day.length === 10",
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
+        }
+      }
+    },
+    "names": {
+      ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      "$slug": {
+        ".write": "$slug.length <= 30",
+        "n": { ".validate": "newData.isString() && newData.val().length <= 14" },
+        "v": { ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)" },
+        "p": { ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)" },
+        "last": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}
