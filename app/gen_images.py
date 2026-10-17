@@ -1,10 +1,12 @@
-"""Genera las imágenes de los animales con la API de imágenes de OpenAI.
+"""Genera las imágenes de los animales. Por defecto GRATIS: Pollinations.ai (Flux, sin clave) + rembg para quitar el fondo.
+Opcional: IMG_PROVIDER=openai con OPENAI_API_KEY.
 Uso: python app/gen_images.py "tiranosaurio-rex,smilodon"   (o "faltantes" / "todos")
 Necesita OPENAI_API_KEY. Guarda img/<slug>.webp (256px) y actualiza la lista IMG en game.html."""
-import base64, csv, io, json, os, re, sys, time, urllib.request
+import base64, csv, io, json, os, random, re, sys, time, urllib.parse, urllib.request
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROVIDER = os.environ.get("IMG_PROVIDER", "pollinations")
 MODEL = os.environ.get("IMG_MODEL", "gpt-image-1")
 QUALITY = os.environ.get("IMG_QUALITY", "medium")
 which = (sys.argv[1] if len(sys.argv) > 1 else "faltantes").strip()
@@ -20,9 +22,23 @@ else:
     todo = [r for r in rows if r["slug"] in want]
     missing = want - {r["slug"] for r in todo}
     if missing: sys.exit("No existen estos animales: " + ", ".join(sorted(missing)))
-print(f"Generando {len(todo)} imágenes con {MODEL} ({QUALITY})")
+print(f"Generando {len(todo)} imágenes con {PROVIDER}")
+if PROVIDER == "pollinations":
+    from rembg import remove, new_session
+    SESSION = new_session("isnet-general-use")
+
+def gen_pollinations(prompt):
+    p = prompt.replace("isolated on a fully transparent background", "isolated on a plain solid white background")
+    url = ("https://image.pollinations.ai/prompt/" + urllib.parse.quote(p) +
+           f"?width=1024&height=1024&model=flux&nologo=true&private=true&seed={random.randint(1, 10**6)}")
+    req = urllib.request.Request(url, headers={"User-Agent": "furia-animal-generator"})
+    with urllib.request.urlopen(req, timeout=300) as r:
+        raw = r.read()
+    return remove(raw, session=SESSION)
 
 def gen(prompt):
+    if PROVIDER == "pollinations":
+        return gen_pollinations(prompt)
     body = json.dumps({"model": MODEL, "prompt": prompt, "size": "1024x1024", "quality": QUALITY,
                        "background": "transparent", "output_format": "png", "n": 1}).encode()
     req = urllib.request.Request("https://api.openai.com/v1/images/generations", data=body,
@@ -42,10 +58,11 @@ for i, r in enumerate(todo, 1):
             canvas.paste(im, ((side - im.width) // 2, (side - im.height) // 2))
             canvas.resize((256, 256), Image.LANCZOS).save(os.path.join(ROOT, "img", r["slug"] + ".webp"), "WEBP", quality=88, method=6)
             print(f"[{i}/{len(todo)}] ok  {r['animal']}")
+            if PROVIDER == "pollinations": time.sleep(16)  # límite del servicio gratis
             break
         except Exception as e:
             print(f"[{i}/{len(todo)}] intento {attempt+1} falló {r['animal']}: {e}")
-            time.sleep(5 * (attempt + 1))
+            time.sleep(20 * (attempt + 1))
     else:
         fails.append(r["animal"])
 

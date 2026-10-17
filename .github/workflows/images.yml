@@ -8,9 +8,9 @@ on:
       calidad:
         description: 'low / medium / high'
         default: 'medium'
-      modelo:
-        description: 'Modelo de imágenes de OpenAI'
-        default: 'gpt-image-1'
+      proveedor:
+        description: 'pollinations (gratis) u openai (pago, necesita OPENAI_API_KEY)'
+        default: 'pollinations'
 permissions:
   contents: write
   pages: write
@@ -22,12 +22,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pip install pillow
+      - run: pip install pillow "rembg[cpu]"
       - name: Generar
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           IMG_QUALITY: ${{ inputs.calidad }}
-          IMG_MODEL: ${{ inputs.modelo }}
+          IMG_PROVIDER: ${{ inputs.proveedor }}
         run: python app/gen_images.py "${{ inputs.animales }}"
       - name: Subir al repo y publicar
         env:
