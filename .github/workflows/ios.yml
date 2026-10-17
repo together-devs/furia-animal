@@ -1,9 +1,6 @@
 name: iOS → TestFlight
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['game.html', 'app/**', 'capacitor.config.json', '.github/workflows/ios.yml']
+  workflow_dispatch:   # manual hasta que la cuenta de Apple esté renovada y los secretos cargados
 
 jobs:
   testflight:
