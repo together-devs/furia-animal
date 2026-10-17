@@ -136,6 +136,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 .actions .btn{font-size:16px;padding:8px 6px;min-height:clamp(54px,8.5vh,70px);line-height:1.05}
 .actions .btn .ic{font-size:22px;display:block;margin-bottom:2px}
 .actions .btn.used{opacity:.55}
+.actions .btn.armed{box-shadow:0 6px 0 var(--ink),0 0 18px var(--cyan);outline:3px solid var(--white);outline-offset:-6px}
 .cycle{grid-column:1/-1;text-align:center;font-size:12px;opacity:.85;font-weight:800}
 
 /* FX */
@@ -248,7 +249,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v6';
+const VERSION='v7';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -324,7 +325,7 @@ const A=RAW.map(([g,n,e,h,s,atk])=>({g,n,e,h,s,atk:atk.map(([n,t])=>({n,t}))}));
 /* ---------- ENGINE ---------- */
 const clone=o=>JSON.parse(JSON.stringify(o));
 const ri=n=>Math.floor(Math.random()*n);
-function mk(a){return{a,hp:10,def:false,ld:false,used:[]}}
+function mk(a){return{a,hp:10,def:false,dc:0,used:[]}}
 function newGame(names){
   const a=ri(A.length);let b=ri(A.length);while(b===a)b=ri(A.length);
   const S={phase:'spin',id:Date.now()%1e9,seq:0,names,p:[mk(a),mk(b)],log:null,winner:-1};
@@ -334,17 +335,18 @@ function newGame(names){
 function canAct(S,who,act){
   if(S.phase!=='battle'||S.turn!==who)return false;
   const me=S.p[who];
-  if(act.k==='def')return!me.def&&!me.ld;
-  return act.k==='atk'&&act.i>=0&&act.i<3&&!me.used.includes(act.i);
+  if(act.k!=='atk'||!(act.i>=0&&act.i<3)||me.used.includes(act.i))return false;
+  if(act.d&&(me.def||me.dc>=2))return false;
+  return true;
 }
 function applyAct(S,who,act){
   if(!canAct(S,who,act))return false;
   const me=S.p[who],op=S.p[1-who];
   const L={seq:S.seq+1,by:who,k:act.k};
-  if(act.k==='def'){me.def=true;me.ld=true}
-  else{
+  if(act.d){me.def=true;me.dc++;L.armed=true}
+  {
     const atk=A[me.a].atk[act.i];L.i=act.i;L.t=atk.t;
-    me.used.push(act.i);if(me.used.length>=3)me.used=[];me.ld=false;
+    me.used.push(act.i);if(me.used.length>=3)me.used=[];
     let hits=[],pierce=false;
     if(atk.t==='G')hits=[3];
     else if(atk.t==='F'){if(Math.random()<.7)hits=[4];else L.miss=true}
@@ -407,10 +409,15 @@ function readName(){myName=($('nm').value||'').trim().slice(0,14)||'Jugador';try
 let MODE=null,ME=0,S=null,shown=null,animSeq=0,busy=false,spunId=null,spinning=false,introId=null,cpuTimer=null;
 
 function setState(ns){S=ns;if(MODE==='host')pushHost();render()}
+let armDef=false;
+const owns=idx=>MODE!=='hot'&&idx===ME;
 function act(a){
   if(busy||!S)return;audio();
   const who=MODE==='hot'?S.turn:ME;
+  if(a.k==='def'){const p=S.p[who];if(S.phase!=='battle'||S.turn!==who)return;if(!armDef&&(p.def||p.dc>=2))return;armDef=!armDef;if(armDef)SFX.shield();drawBattle();return}
+  a={k:'atk',i:a.i,d:armDef};
   if(!canAct(S,who,a))return;
+  armDef=false;
   if(MODE==='guest'){sendGuest(a);busy=true;return}
   const ns=clone(S);applyAct(ns,who,a);setState(ns);
 }
@@ -482,10 +489,10 @@ async function doSpin(){
 
 /* ---------- BATTLE DRAW ---------- */
 function fighterHTML(idx,top){
-  const p=shown[idx],a=A[p.a],hp=p.hp,cls=hp<=3?'hp-low':hp<=6?'hp-mid':'';
+  const p=shown[idx],actorNow=MODE==='hot'?S.turn:ME,shOn=(p.def&&owns(idx))||(armDef&&idx===actorNow&&S.turn===idx),a=A[p.a],hp=p.hp,cls=hp<=3?'hp-low':hp<=6?'hp-mid':'';
   let pips='';for(let i=0;i<10;i++)pips+=`<i class="pip${i<hp?' f':''}"></i>`;
   const label=MODE==='hot'?S.names[idx]:(idx===ME?S.names[idx]+' · vos':S.names[idx]);
-  return`<div class="por" style="${gstyle(p.a)}">${emo(p.a)}<div class="shield${p.def?' on':''}"></div></div>
+  return`<div class="por" style="${gstyle(p.a)}">${emo(p.a)}<div class="shield${shOn?' on':''}"></div></div>
   <div class="info" style="${gstyle(p.a)}"><div class="who">${esc(label)}</div><div class="fname">${esc(a.n)}</div>
   <div><span class="badge">${GROUPS[a.g].n} · vel ${a.s}</span></div>
   <div class="hp ${cls}">${pips}<span class="hpn">${hp}</span></div></div>`;
@@ -505,8 +512,9 @@ function drawBattle(){
   let h='';
   a.atk.forEach((k,i)=>{const T=TYPES[k.t],used=p.used.includes(i);
     h+=`<button class="btn ${['b-gold','b-red','b-green'][i]}${used?' used':''}" data-i="${i}" ${(!can||used)?'disabled':''}><span class="ic">${T.ic}</span>${esc(k.n)}<small>${used?'Ya usado':T.n+': '+T.d}</small></button>`});
-  const dOK=!p.def&&!p.ld;
-  h+=`<button class="btn b-cyan" data-d="1" ${(!can||!dOK)?'disabled':''}><span class="ic">🛡️</span>Defensa<small>${p.def?'Escudo activo':p.ld?'No dos veces seguidas':'El próximo golpe duele la mitad'}</small></button>`;
+  const dLeft=2-p.dc,dOK=armDef||(!p.def&&dLeft>0);
+  const dTxt=armDef?'¡Activado! Ahora elegí tu ataque':p.def?'Ya tenés un escudo puesto':dLeft<=0?'Ya usaste los 2':'Secreto · te quedan '+dLeft;
+  h+=`<button class="btn b-cyan${armDef?' armed':''}" data-d="1" ${(!can||!dOK)?'disabled':''}><span class="ic">🛡️</span>${armDef?'Escudo listo':'Escudo secreto'}<small>${dTxt}</small></button>`;
   const left=3-p.used.length;
   h+=`<div class="cycle">${MODE==='hot'?esc(S.names[S.turn])+': ':''}te quedan ${left} ataque${left===1?'':'s'} distinto${left===1?'':'s'} antes de poder repetir</div>`;
   $('actions').innerHTML=h;
@@ -517,12 +525,11 @@ function drawBattle(){
 /* ---------- BATTLE ANIMATION ---------- */
 function logText(L){
   const n=A[S.p[L.by].a].n;
-  if(L.k==='def')return`🛡️ ${n} levanta el escudo.`;
   const atk=A[S.p[L.by].a].atk[L.i],T=TYPES[L.t];
-  let s=`${T.ic} ${n} usa ${atk.n}`;
+  let s=(L.armed&&owns(L.by)?'🛡️ Escudo secreto puesto. ':'')+`${T.ic} ${n} usa ${atk.n}`;
   if(L.miss)return s+'... ¡y falla!';
   if(L.broke)s+=' ¡y rompe el escudo!';
-  if(L.blk)s+=', pero el escudo frena parte';
+  if(L.blk)s+=', ¡pero rebota en un escudo secreto!';
   s+=`: ${L.tot} de daño`+(L.dm.length>1?` (${L.dm.length} golpes)`:'')+'.';
   if(L.heal)s+=' Se cura 1 ❤️.';
   return s;
@@ -533,17 +540,14 @@ function animate(L){
   const attPor=att.querySelector('.por'),defPor=def.querySelector('.por');
   $('log').textContent=logText(L);
   const done=t=>setTimeout(()=>{shown=clone(S.p);busy=false;render()},t);
-  if(L.k==='def'){
-    shown[L.by].def=true;att.querySelector('.shield').classList.add('on');SFX.shield();
-    floatTxt(attPor,'¡ESCUDO!','blk');return done(900);
-  }
+  if(L.armed){shown[L.by].def=true;if(owns(L.by)){att.querySelector('.shield').classList.add('on');floatTxt(attPor,'¡ESCUDO!','blk')}}
   replay(attPor,atkTop?'lunge-down':'lunge-up');
   if(L.miss){setTimeout(SFX.miss,280);floatTxt(defPor,'¡FALLÓ!','miss',300);return done(1100)}
   const target=1-L.by;
   L.dm.forEach((d,k)=>{
     setTimeout(()=>{
       replay(defPor,'hit');
-      if(k===0&&(L.blk||L.broke)){def.querySelector('.shield').classList.remove('on');shown[target].def=false;SFX.block();floatTxt(defPor,L.broke?'¡ROTO!':'¡BLOQUEO!','blk')}
+      if(k===0&&(L.blk||L.broke)){const sh=def.querySelector('.shield');sh.classList.add('on');setTimeout(()=>sh.classList.remove('on'),650);shown[target].def=false;SFX.block();floatTxt(defPor,L.broke?'¡ROTO!':'¡BLOQUEO!','blk')}
       L.t==='F'?(SFX.big(),replay($('arena'),'quake')):SFX.hit();
       floatTxt(defPor,'-'+d,'dmg',60);
       shown[target].hp=Math.max(0,shown[target].hp-d);updateHp(def,shown[target].hp);
@@ -561,13 +565,9 @@ function scheduleCpu(){
     if(!S||MODE!=='cpu'||S.seq!==id||S.turn!==1||busy||S.phase!=='battle')return;
     const me=S.p[1],op=S.p[0],at=A[me.a].atk;
     const opts=[0,1,2].filter(i=>!me.used.includes(i));
-    let choice;
-    const defOK=!me.def&&!me.ld;
-    if(defOK&&Math.random()<(me.hp<=4?.4:.2))choice={k:'def'};
-    else{
-      const score=i=>{const t=at[i].t;if(op.def)return{R:5,C:4,V:2,G:1,F:1}[t];if(op.hp<=3)return{G:5,F:3,V:3,R:2,C:2}[t];return{F:4,G:4,V:3,C:2,R:2}[t]+Math.random()*2};
-      opts.sort((x,y)=>score(y)-score(x));choice={k:'atk',i:opts[0]};
-    }
+    const score=i=>{const t=at[i].t;if(op.hp<=3)return{G:5,F:3,V:3,R:2,C:2}[t];return{F:4,G:4,V:3,C:2,R:2}[t]+Math.random()*2};
+    opts.sort((x,y)=>score(y)-score(x));
+    const choice={k:'atk',i:opts[0],d:!me.def&&me.dc<2&&Math.random()<(me.hp<=5?.45:.22)};
     const ns=clone(S);applyAct(ns,1,choice);setState(ns);
   },1000);
 }
@@ -654,7 +654,7 @@ function hostMsg(d){
   if(d.t==='bye')return lost('Tu rival se fue.');
   if(!(d.n>lastN))return;lastN=d.n;
   if(d.t==='again'){if(S.phase==='over'){closeOver();animSeq=0;setState(newGame(S.names))}return}
-  if(d.t==='act'){const ns=clone(S);if(applyAct(ns,1,{k:d.k,i:d.i}))setState(ns);else pushHost()}
+  if(d.t==='act'){const ns=clone(S);if(applyAct(ns,1,{k:d.k,i:d.i,d:!!d.sh}))setState(ns);else pushHost()}
 }
 function pushHost(){if(base)pub('h',{t:'st',st:S,gid:guestId,ts:Date.now()},true)}
 async function joinGame(){
@@ -687,7 +687,7 @@ function guestMsg(d){
     if(S&&st.id!==S.id)closeOver();
     S=st;if(!(S.log&&S.log.seq>animSeq))busy=false;render()}
 }
-function sendGuest(a){myN++;pub('g',{t:a.k==='again'?'again':'act',gid,n:myN,k:a.k,i:a.i??null});setTimeout(()=>{if(busy&&S&&!(S.log&&S.log.seq>animSeq)){busy=false;drawBattle()}},4000)}
+function sendGuest(a){myN++;pub('g',{t:a.k==='again'?'again':'act',gid,n:myN,k:a.k,i:a.i??null,sh:a.d?1:0});setTimeout(()=>{if(busy&&S&&!(S.log&&S.log.seq>animSeq)){busy=false;drawBattle()}},4000)}
 
 /* ---------- WIRING ---------- */
 $('go-cpu').onclick=()=>{audio();start('cpu')};
