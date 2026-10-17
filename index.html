@@ -61,10 +61,10 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 .logo h1{margin:0;font-family:var(--display);font-size:clamp(46px,14vw,72px);line-height:.9;color:var(--gold);
   text-shadow:0 5px 0 var(--gold-d),0 9px 0 var(--ink),0 14px 22px rgba(0,0,0,.4);transform:rotate(-3deg);-webkit-text-stroke:2px var(--ink)}
 .logo .sub{display:inline-block;margin-top:14px;background:var(--red);border:3px solid var(--ink);border-radius:12px;padding:4px 14px;font-family:var(--display);font-size:20px;transform:rotate(2deg);box-shadow:0 4px 0 var(--ink)}
-.parade{margin:22px -40px 10px;overflow:hidden;white-space:nowrap;font-size:44px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+.parade{margin:14px -40px 6px;overflow:hidden;white-space:nowrap;font-size:44px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
 .parade span{display:inline-block;animation:march 40s linear infinite}
 @keyframes march{to{transform:translateX(-50%)}}
-.menu{display:flex;flex-direction:column;gap:16px;margin-top:auto;padding-bottom:10px}
+.menu{display:flex;flex-direction:column;gap:13px;margin-top:auto;padding-bottom:10px}
 .namebox{display:flex;align-items:center;gap:10px;background:var(--panel);border:2px solid #fff3;border-radius:14px;padding:8px 12px}
 .namebox label{font-size:14px;opacity:.85;white-space:nowrap}
 .namebox input,.codein{flex:1;min-width:0;font:inherit;font-family:var(--display);font-size:22px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:10px;padding:4px 10px}
@@ -182,7 +182,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
     <div class="menu">
       <div class="namebox"><label for="nm">Tu nombre</label><input id="nm" maxlength="14" value="Tino" autocomplete="off"></div>
       <button class="btn b-gold" id="go-cpu">Contra la máquina<small>Peleá contra un animal de la compu</small></button>
-      <button class="btn b-green" id="go-online">Contra un amigo online<small>Cada uno desde su celular</small></button>
+      <button class="btn b-green" id="go-wa">Invitar por WhatsApp<small>Le mandás un link y entra directo</small></button>
+      <button class="btn b-cyan" id="go-online">Unirme con código<small>Si te pasaron un número de sala</small></button>
       <button class="btn b-blue" id="go-hot">Dos jugadores, un celu<small>Se pasan el teléfono por turno</small></button>
       <div class="foot">52 animales · 5 tipos de ataque · 1 escudo</div>
     </div>
@@ -212,6 +213,10 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
         <div class="muted" id="lobby-top">Pasale este código a tu amigo</div>
         <div class="bigcode" id="lobby-code">----</div>
         <div class="muted" id="lobby-msg"><span class="dots">Esperando rival</span></div>
+        <div id="share" style="display:flex;flex-direction:column;gap:12px">
+          <button class="btn b-green" id="wa">Mandar por WhatsApp</button>
+          <button class="btn b-blue" id="copy">Copiar link</button>
+        </div>
       </div>
       <button class="btn b-red" data-back>Cancelar</button>
     </div>
@@ -623,13 +628,13 @@ async function hostGame(){
   readName();if(!window.mqtt)return noNet();
   leaveRoom();leaving=false;code=String(1000+ri(9000));base='furiaanimal-tino/'+code;
   MODE='host';ME=0;S={phase:'lobby',id:0,names:[myName,'']};spunId=null;introId=null;guestId=null;lastN=0;
-  $('lobby-top').textContent='Pasale este código a tu amigo';$('lobby-code').textContent=code;
+  $('lobby-top').textContent='Tu sala';$('share').hidden=false;$('lobby-code').textContent=code;
   $('lobby-msg').innerHTML='<span class="dots">Creando sala</span>';show('s-lobby');
   const ok=await netConnect('g',hostMsg);
   if(MODE!=='host')return;
   if(!ok){noNet();return toMenu()}
   pub('h',{t:'lobby',ts:Date.now()},true);
-  $('lobby-msg').innerHTML='<span class="dots">Esperando rival</span><br><small>Tu amigo abre esta misma página, toca "Contra un amigo online" y pone el código.</small>';
+  $('lobby-msg').innerHTML='<span class="dots">Esperando rival</span><br><small>Cuando tu amigo abra el link, la pelea arranca sola.</small>';
   hb=setInterval(()=>{
     if(S.phase==='lobby')pub('h',{t:'lobby',ts:Date.now()},true);else pushHost();
     if(guestId&&Date.now()-lastSeen>35000)lost('Tu rival se fue.');
@@ -656,7 +661,7 @@ async function joinGame(){
   if(!window.mqtt)return noNet();
   leaveRoom();leaving=false;base='furiaanimal-tino/'+c;
   MODE='guest';ME=1;S=null;spunId=null;introId=null;animSeq=0;gid=rid();myN=0;hostSeen=false;
-  $('lobby-top').textContent='Sala';$('lobby-code').textContent=c;$('lobby-msg').innerHTML='<span class="dots">Conectando</span>';
+  $('lobby-top').textContent='Entrando a la sala';$('share').hidden=true;$('lobby-code').textContent=c;$('lobby-msg').innerHTML='<span class="dots">Conectando</span>';
   show('s-lobby');
   const ok=await netConnect('h',guestMsg);
   if(MODE!=='guest')return;
@@ -686,6 +691,16 @@ function sendGuest(a){myN++;pub('g',{t:a.k==='again'?'again':'act',gid,n:myN,k:a
 $('go-cpu').onclick=()=>{audio();start('cpu')};
 $('go-hot').onclick=()=>{audio();start('hot')};
 $('go-online').onclick=()=>{audio();readName();show('s-online')};
+const inviteLink=()=>location.origin+location.pathname+'#sala'+code;
+const inviteText=()=>'¡Te desafío en Furia Animal! 🦖⚔️ Tocá el link y entrás directo a mi sala:\n'+inviteLink();
+function openWA(){window.open('https://wa.me/?text='+encodeURIComponent(inviteText()),'_blank')}
+$('go-wa').onclick=()=>{audio();hostGame();openWA()};
+$('wa').onclick=openWA;
+$('copy').onclick=()=>{const t=inviteLink();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Link copiado',1800)).catch(()=>toast(t,6000))};
+(function autoJoin(){const m=(location.hash||'').match(/^#sala(\d{4})$/);if(!m)return;
+  try{history.replaceState(null,'',location.pathname)}catch(e){}
+  try{if(!localStorage.getItem('fa_name'))$('nm').value='Amigo'}catch(e){$('nm').value='Amigo'}
+  $('code').value=m[1];joinGame()})();
 $('host').onclick=hostGame;$('join').onclick=joinGame;
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=toMenu);
 </script>
