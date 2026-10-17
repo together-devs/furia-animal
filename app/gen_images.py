@@ -28,13 +28,19 @@ if PROVIDER == "pollinations":
     SESSION = new_session("isnet-general-use")
 
 def gen_pollinations(prompt):
-    p = prompt.replace("isolated on a fully transparent background", "isolated on a plain solid white background")
+    desc = prompt.split(", stylized 3D")[0]
+    p = (f"{desc}. Single animal, full body, side view facing left, head and face clearly visible, "
+         "cute but fierce 3D cartoon game character like a Pixar render, accurate anatomy and natural realistic colors, "
+         "soft studio lighting, centered, plain solid white background, no text, no watermark")
     url = ("https://image.pollinations.ai/prompt/" + urllib.parse.quote(p) +
            f"?width=1024&height=1024&model=flux&nologo=true&private=true&seed={random.randint(1, 10**6)}")
     req = urllib.request.Request(url, headers={"User-Agent": "furia-animal-generator"})
     with urllib.request.urlopen(req, timeout=300) as r:
         raw = r.read()
-    return remove(raw, session=SESSION)
+    im = Image.open(io.BytesIO(raw)).convert("RGB")
+    im = im.crop((0, 0, im.width, int(im.height * 0.92)))  # saca la marca de agua de abajo
+    buf = io.BytesIO(); im.save(buf, "PNG")
+    return remove(buf.getvalue(), session=SESSION)
 
 def gen(prompt):
     if PROVIDER == "pollinations":
