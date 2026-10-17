@@ -97,6 +97,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 .strip{position:absolute;top:15px;left:0;display:flex;gap:10px;will-change:transform}
 .rc{width:104px;height:120px;flex:none;border-radius:16px;border:3px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;
   background:linear-gradient(180deg,var(--g1),var(--g2));box-shadow:inset 0 4px 0 #fff5}
+img.em.im{display:block;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 5px 0 rgba(0,0,0,.35))}
+.rc img.em.im{width:84px;height:84px}
 .rc .em{font-size:58px;line-height:1;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
 .rc .nm{font-size:10.5px;font-weight:900;text-align:center;padding:2px 4px;line-height:1.05;text-shadow:0 1px 0 #000}
 .rc.win{animation:winpop .6s ease-out;outline:4px solid var(--gold);outline-offset:-2px}
@@ -190,7 +192,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
       <button class="btn b-green" id="go-wa">Invitar por WhatsApp<small>Le mandás un link y entra directo</small></button>
       <button class="btn b-cyan" id="go-online">Unirme con código<small>Si te pasaron un número de sala</small></button>
       <button class="btn b-blue" id="go-hot">Dos jugadores, un celu<small>Se pasan el teléfono por turno</small></button>
-      <div class="foot">52 animales · 5 tipos de ataque · 1 escudo · <span id="ver"></span></div>
+      <div class="foot">114 animales · 5 tipos de ataque · 1 escudo · <span id="ver"></span></div>
     </div>
   </section>
 
@@ -278,7 +280,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v12';
+const VERSION='v13';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -347,8 +349,72 @@ const RAW=[
 ['r','Quetzalcoatlus','🦅',150,7,[['Picotazo Gigante','F'],['Ataque en Picada','R'],['Aletazo','G']]],
 ['r','Águila de Haast','🦅',0,9,[['Garras de Acero','F'],['Picada','C'],['Picotazo','V']]],
 ['r','Argentavis','🦅',30,7,[['Aletazo Huracán','C'],['Picada','F'],['Picotazo','G']]],
-['r','Phorusrhacos','🦤',300,9,[['Pico Hacha','F'],['Patada Rápida','C'],['Picotazo','G']]]
+['r','Phorusrhacos','🦤',300,9,[['Pico Hacha','F'],['Patada Rápida','C'],['Picotazo','G']]],
+['c','Torvosaurio','🦖',20,6,[['Mordida Salvaje','F'],['Garras Largas','C'],['Embestida','G']]],
+['c','Monolofosaurio','🦖',50,8,[['Cresta Filosa','R'],['Mordida Rápida','C'],['Zarpazo','V']]],
+['c','Daspletosaurio','🦖',340,5,[['Mordida Brutal','F'],['Cabezazo','R'],['Desgarro','V']]],
+['c','Albertosaurio','🦖',70,7,[['Mordida Veloz','G'],['Carrera de Caza','C'],['Dientes de Sierra','F']]],
+['c','Acrocanthosaurio','🦖',290,5,[['Lomo Espinoso','R'],['Mordida Gigante','F'],['Coletazo','G']]],
+['c','Ceratosaurio','🦖',180,6,[['Cuerno Nasal','R'],['Mordida','G'],['Ataque Sorpresa','F']]],
+['c','Suchomimus','🦖',120,5,[['Garra de Pesca','C'],['Mordida Cocodrilo','V'],['Coletazo','G']]],
+['c','Majungasaurio','🦖',10,6,[['Cabezazo Cuerno','R'],['Mordida Aplastante','F'],['Mordisco','V']]],
+['c','Rajasaurio','🦖',40,6,[['Cresta Real','R'],['Mordida','G'],['Garras','C']]],
+['c','Terizinosaurio','🦖',100,3,[['Garras Guadaña','F'],['Abrazo Plumoso','V'],['Barrida','C']]],
+['h','Apatosaurio','🦕',60,2,[['Pisotón','F'],['Cola Látigo','C'],['Empujón','G']]],
+['h','Euoplocefalus','🦕',170,2,[['Mazo de Cola','F'],['Placas Rompe','R'],['Topetazo','G']]],
+['h','Shunosaurio','🦕',230,3,[['Cola Maza','F'],['Pisotón','G'],['Empujón de Cuello','R']]],
+['h','Sauroposeidón','🦕',190,1,[['Cuello Torre','R'],['Pisotón Gigante','F'],['Coletazo','G']]],
+['h','Alamosaurio','🦕',90,2,[['Aplastamiento','F'],['Barrida de Cola','C'],['Empujón','G']]],
+['h','Saltasaurio','🦕',300,3,[['Armadura Rompe','R'],['Cola Látigo','C'],['Pisotón','G']]],
+['h','Titanoceratops','🦕',330,3,[['Cuernos Titanes','F'],['Escudo Embestida','R'],['Topetazo','G']]],
+['h','Centrosaurio','🦕',30,4,[['Cuerno Nasal','F'],['Carga en Manada','C'],['Topetazo','R']]],
+['f','Megantereon','🐆',30,8,[['Sable Corto','F'],['Emboscada','R'],['Zarpazo','C']]],
+['f','Barbourofelis','🐆',300,7,[['Sables Gigantes','F'],['Salto Feroz','C'],['Mordisco','V']]],
+['f','Dinofelis','🐆',240,8,[['Colmillo Asesino','F'],['Zarpazos','C'],['Emboscada','R']]],
+['f','Simbakubwa','🦁',30,5,[['Mordida Gigante','F'],['Zarpazo Brutal','G'],['Rugido','R']]],
+['p','Andrewsarchus','🐗',340,5,[['Cráneo Gigante','F'],['Mordida','V'],['Embestida','G']]],
+['p','León marsupial','🐆',60,7,[['Pulgar Garra','R'],['Mordida Potente','F'],['Zarpazos','C']]],
+['p','Chalicoterio','🐴',200,3,[['Garras de Gancho','C'],['Patada','G'],['Golpe de Brazo','F']]],
+['p','Macrauquenia','🐪',120,6,[['Trompa Látigo','C'],['Patada','G'],['Carrera Zigzag','R']]],
+['p','Gomfoterio','🐘',30,3,[['Cuatro Colmillos','F'],['Trompazo','G'],['Estampida','R']]],
+['p','Ciervo gigante','🦌',0,7,[['Astas Gigantes','F'],['Carga','R'],['Patada','G']]],
+['p','Rinoceronte gigante','🦏',40,2,[['Pisotón Colosal','F'],['Cabezazo','G'],['Empujón','R']]],
+['p','Megalonyx','🦥',30,2,[['Garras Gigantes','F'],['Abrazo','V'],['Barrida','C']]],
+['m','Rinoceronte blanco','🦏',0,4,[['Cuerno Doble','F'],['Carga','R'],['Pisotón','G']]],
+['m','Oso pardo','🐻',0,5,[['Zarpazo','F'],['Abrazo de Oso','V'],['Golpe de Pata','G']]],
+['m','Leopardo','🐆',0,9,[['Salto del Árbol','F'],['Mordida','R'],['Zarpazos','C']]],
+['m','Jirafa','🦒',0,6,[['Cuellazo','F'],['Patada','G'],['Lengüetazo','V']]],
+['m','Equus gigante','🐴',0,9,[['Coz Doble','F'],['Galope','C'],['Mordisco','G']]],
+['r','Sarcosuchus','🐊',60,3,[['Mordida Supercroc','F'],['Giro Mortal','V'],['Coletazo','G']]],
+['r','Teratornis','🦅',200,7,[['Picada','F'],['Aletazo','C'],['Picotazo','G']]],
+['r','Dinornis','🦤',90,6,[['Patada Gigante','F'],['Picotazo','G'],['Carrera','C']]],
+['r','Ave elefante','🦤',150,4,[['Patada Elefante','F'],['Picotazo','G'],['Empujón','R']]],
+['r','Titanis','🦤',330,8,[['Pico Hacha','F'],['Garra','C'],['Patada','G']]],
+['r','Dromornis','🦤',50,5,[['Pico Gigante','F'],['Patada','G'],['Embestida','R']]],
+['r','Madtsoia','🐍',300,3,[['Constrictor','V'],['Mordida','G'],['Latigazo','R']]],
+['p','Doedicuro','🐢',330,1,[['Maza con Púas','F'],['Caparazón','R'],['Topetazo','G']]],
+['p','Arsinoiterio','🦏',280,3,[['Cuernos Gemelos','F'],['Carga','R'],['Pisotón','G']]],
+['p','Uintaterio','🦏',220,3,[['Seis Cuernos','R'],['Colmillos','F'],['Pisotón','G']]],
+['p','Arctodus','🐻',20,6,[['Zarpazo Gigante','F'],['Carrera de Oso','C'],['Mordida','V']]],
+['p','Sivatherium','🦒',30,5,[['Cuernos Anchos','F'],['Patada','G'],['Cuellazo','R']]],
+['p','Astrapoterio','🐘',200,3,[['Colmillos Cortos','F'],['Trompa','G'],['Pisotón','R']]],
+['p','Dinocrocuta','🐕',300,6,[['Mordida Trituradora','F'],['Carga','C'],['Mordisco','V']]],
+['p','Megalictis','🦡',0,7,[['Mordida Feroz','F'],['Ataque Rápido','C'],['Garras','V']]],
+['p','Sivapithecus','🦧',0,6,[['Puñetazo','G'],['Golpe Doble','C'],['Mordida','V']]],
+['p','Harpagolestes','🐺',300,6,[['Mordida Rompehuesos','R'],['Embestida','G'],['Mordisco','V']]],
+['p','Anthracoterio','🦛',40,3,[['Mordida de Río','F'],['Embestida','G'],['Chapuzón','R']]],
+['p','Bisonte gigante','🦬',20,4,[['Cuernos Enormes','F'],['Estampida','C'],['Cabezazo','R']]],
+['p','Rinoceronte lanudo','🦏',30,4,[['Cuerno Helado','F'],['Carga','R'],['Pisotón','G']]],
+['p','Megacerops','🦏',300,4,[['Cuerno en Y','F'],['Carga','R'],['Pisotón','G']]],
+['p','Gigantopithecus','🦍',20,4,[['Puño Gigante','F'],['Golpe de Pecho','R'],['Lluvia de Golpes','C']]],
+['p','Kolponomos','🐻',200,4,[['Mordida Rompeconchas','R'],['Zarpazo','G'],['Abrazo','V']]],
+['p','Uintacyon','🐺',220,9,[['Mordida Veloz','C'],['Salto','G'],['Mordisco','V']]],
+['p','Mesonix','🐺',40,7,[['Mordida','F'],['Carrera','C'],['Embestida','G']]],
+['h','Titanosaurio','🦕',120,2,[['Aplastamiento','F'],['Cola Látigo','C'],['Empujón','G']]],
+['p','Capibara gigante','🐹',30,4,[['Mordida de Dientes','F'],['Embestida','G'],['Chapuzón','V']]]
 ];
+const slug=n=>n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const IMG=new Set([]); // slugs con imagen en img/<slug>.webp
 const A=RAW.map(([g,n,e,h,s,atk])=>({g,n,e,h,s,atk:atk.map(([n,t])=>({n,t}))}));
 
 /* ---------- ENGINE ---------- */
@@ -422,7 +488,7 @@ muteB.onclick=()=>{muted=!muted;muteB.textContent=muted?'🔇':'🔊'};
 const $=id=>document.getElementById(id);
 const show=id=>{document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id)};
 const gstyle=a=>`--g1:${GROUPS[A[a].g].g1};--g2:${GROUPS[A[a].g].g2}`;
-const emo=a=>{const x=A[a];return`<span class="em"${x.h?` style="filter:hue-rotate(${x.h}deg) drop-shadow(0 5px 0 rgba(0,0,0,.35))"`:''}>${x.e}</span>`};
+const emo=a=>{const x=A[a],k=slug(x.n);if(IMG.has(k))return`<img class="em im" src="img/${k}.webp" alt="${esc(x.n)}">`;return`<span class="em"${x.h?` style="filter:hue-rotate(${x.h}deg) drop-shadow(0 5px 0 rgba(0,0,0,.35))"`:''}>${x.e}</span>`};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(msg,ms=3500){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms)}
 function banner(html,ms=1700){const b=document.createElement('div');b.className='banner';b.innerHTML=html;document.body.appendChild(b);setTimeout(()=>b.remove(),ms)}
