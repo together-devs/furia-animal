@@ -1,0 +1,41 @@
+name: Generar imágenes de animales
+on:
+  workflow_dispatch:
+    inputs:
+      animales:
+        description: 'Cuáles: "faltantes", "todos" o slugs separados por coma (ej: tiranosaurio-rex,smilodon)'
+        default: 'tiranosaurio-rex,smilodon,triceratops,gorila,titanoboa'
+      calidad:
+        description: 'low / medium / high'
+        default: 'medium'
+      modelo:
+        description: 'Modelo de imágenes de OpenAI'
+        default: 'gpt-image-1'
+permissions:
+  contents: write
+  pages: write
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pillow
+      - name: Generar
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          IMG_QUALITY: ${{ inputs.calidad }}
+          IMG_MODEL: ${{ inputs.modelo }}
+        run: python app/gen_images.py "${{ inputs.animales }}"
+      - name: Subir al repo y publicar
+        env: { GH_TOKEN: ${{ github.token }} }
+        run: |
+          git config user.name "Furia Animal bot"
+          git config user.email "actions@github.com"
+          git add img game.html
+          git diff --cached --quiet && { echo "Sin cambios"; exit 0; }
+          git commit -m "Imágenes de animales: ${{ inputs.animales }}"
+          git push
+          gh api -X POST repos/${{ github.repository }}/pages/builds || true
