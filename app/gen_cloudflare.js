@@ -18,17 +18,17 @@ for (const block of txt.split(/\n(?=#\d+ )/)) {
 
 // descripciones más precisas para animales raros (el modelo los inventa si no)
 const EXTRA = {
-  'megacerops': 'Megacerops, a huge prehistoric brontothere mammal: bulky rhino-sized body, thick grey hide, and on its nose a single large blunt bony horn that splits into two rounded prongs shaped like the letter Y (NOT a pointed rhino horn)',
+  'megacerops': 'Megacerops brontothere, prehistoric mammal like a giant bulky horse-rhino hybrid. Distinctive feature: on the end of its snout grows ONE wide flat blunt bony plate that forks into TWO short rounded prongs, like a slingshot or a letter Y. It has NO sharp pointed horn at all. Grey wrinkled hide',
   'arctodus': 'Arctodus simus, the giant short-faced bear of the Ice Age: very long legs, short broad snout, dark brown shaggy fur',
   'rinoceronte-lanudo': 'Woolly rhinoceros of the Ice Age: thick long reddish-brown shaggy fur all over, two horns, the front horn very long and curved forward',
-  'arsinoiterio': 'Arsinoitherium, prehistoric rhino-like mammal from Egypt with two enormous thick conical horns side by side above its nose, grey-brown skin',
+  'arsinoiterio': 'Arsinoitherium, prehistoric mammal from Egypt. Distinctive feature: TWO huge thick conical horns growing side by side (left and right, parallel, like a pair) from above its nose, pointing forward and up, plus two tiny horns behind them. Not a rhino: no single horn on the tip of the nose. Grey-brown skin',
   'uintaterio': 'Uintatherium, large prehistoric mammal with three pairs of knobby bony bumps on its head and two long saber-like tusks hanging from its upper jaw, grey hide',
   'sivatherium': 'Sivatherium, prehistoric giraffe relative with a short neck, stocky ox-like body and broad flat moose-like horns on its head, spotted tan coat',
   'astrapoterio': 'Astrapotherium, strange South American prehistoric mammal with a long body, short trunk and four forward-pointing tusks, brown skin',
   'dinocrocuta': 'Dinocrocuta, giant prehistoric hyena-like predator with massive bone-crushing jaws, spotted brown fur',
   'megalictis': 'Megalictis, giant prehistoric wolverine-like weasel, dark brown fur with lighter stripe on its side, short legs, sharp teeth',
   'sivapithecus': 'Sivapithecus, prehistoric ape similar to an orangutan, long reddish-brown hair, long arms',
-  'harpagolestes': 'Harpagolestes, prehistoric wolf-like hoofed predator with a huge heavy skull and thick bone-cracking teeth, grey-brown fur',
+  'harpagolestes': 'Harpagolestes, prehistoric predatory mammal that looks like a big heavy wolf with a long powerful furry snout and strong jaws with thick teeth, small hooves instead of paws, shaggy grey-brown fur, living animal with normal furry face and eyes',
   'anthracoterio': 'Anthracotherium, prehistoric hippo-like mammal with a long snout and visible tusks, bristly grey-brown skin',
   'bisonte-gigante': 'Bison latifrons, giant Ice Age bison with enormous horns spanning over 2 meters, shaggy dark brown fur and big hump'
 };
