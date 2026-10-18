@@ -293,7 +293,7 @@ img.em.im{display:block;width:88%;height:88%;object-fit:contain;filter:drop-shad
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v37';
+const VERSION='v38';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -600,7 +600,9 @@ function render(){
 const CW=114;
 function buildStrip(reel,target){
   const strip=reel.querySelector('.strip');const N=46,T=40;let h='';
-  for(let i=0;i<N;i++){const a=i===T?target:ri(A.length);h+=`<div class="rc" style="${gstyle(a)}">${emo(a)}<div class="nm">${esc(A[a].n)}</div></div>`}
+  // animales de relleno todos distintos (y distintos del que va a salir)
+  const pool=A.map((_,i)=>i).filter(i=>i!==target);for(let i=pool.length-1;i>0;i--){const j=ri(i+1);[pool[i],pool[j]]=[pool[j],pool[i]]}
+  for(let i=0;i<N;i++){const a=i===T?target:pool[i];h+=`<div class="rc" style="${gstyle(a)}">${emo(a)}<div class="nm">${esc(A[a].n)}</div></div>`}
   strip.innerHTML=h;strip.style.transform='translateX(0)';return{strip,T}
 }
 function spinReel(reel,target,dur,delay){
