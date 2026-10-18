@@ -43,6 +43,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 #app{position:relative;z-index:1;height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
 .screen{flex:1;display:flex;flex-direction:column;min-height:0}
+#s-home{overflow-y:auto;-webkit-overflow-scrolling:touch}
 .t{font-family:var(--display);letter-spacing:.5px;text-shadow:0 3px 0 rgba(0,0,0,.55),0 0 2px #000;-webkit-text-stroke:1px rgba(0,0,0,.35)}
 
 /* Buttons */
@@ -61,12 +62,13 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
 .btn small{display:block;font-family:var(--body);font-size:12px;font-weight:800;opacity:.9;text-shadow:none;margin-top:2px}
 
 /* Home */
-.logo{text-align:center;margin-top:4vh}
+.logo{text-align:center;margin-top:2vh}
 .logo h1{margin:0;font-family:var(--display);font-size:clamp(46px,14vw,72px);line-height:.9;color:var(--gold);
   text-shadow:0 5px 0 var(--gold-d),0 9px 0 var(--ink),0 14px 22px rgba(0,0,0,.4);transform:rotate(-3deg);-webkit-text-stroke:2px var(--ink)}
 .logo .sub{display:inline-block;margin-top:14px;background:var(--red);border:3px solid var(--ink);border-radius:12px;padding:4px 14px;font-family:var(--display);font-size:20px;transform:rotate(2deg);box-shadow:0 4px 0 var(--ink)}
-.parade{margin:14px -40px 6px;overflow:hidden;white-space:nowrap;font-size:44px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+.parade{flex:none;height:54px;margin:6px -40px 2px;overflow:hidden;white-space:nowrap;font-size:44px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
 .parade span{display:inline-block;animation:march 40s linear infinite}
+.parade img{height:50px;width:auto;margin:0 6px;vertical-align:bottom}
 @keyframes march{to{transform:translateX(-50%)}}
 .menu{display:flex;flex-direction:column;gap:13px;margin-top:auto;padding-bottom:10px}
 .namebox{display:flex;align-items:center;gap:10px;background:var(--panel);border:2px solid #fff3;border-radius:14px;padding:8px 12px}
@@ -293,7 +295,7 @@ img.em.im{display:block;width:88%;height:88%;object-fit:contain;filter:drop-shad
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v40';
+const VERSION='v42';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -527,9 +529,22 @@ function fanfare(){if(muted||!AC)return;const t=AC.currentTime+.02;
   timpani(t+.2,98,.35);brass([196,247,294],t+.2,.16);  // G mayor corto
   timpani(t+.4,65,.6);brass([262,330,392,523],t+.4,1.5,.075); // C mayor largo
   cymbal(t+.4);sparkle(t+.5,[1047,1319,1568,2093,2637]);}
-function powerUp(){if(muted||!AC)return;const t=AC.currentTime+.01,o=AC.createOscillator(),g=AC.createGain();o.type='sawtooth';
-  o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(1760,t+.35);g.gain.setValueAtTime(.06,t);g.gain.exponentialRampToValueAtTime(.0001,t+.45);
-  const fl=AC.createBiquadFilter();fl.type='lowpass';fl.frequency.value=2500;o.connect(fl);fl.connect(g);g.connect(fxBus());o.start(t);o.stop(t+.5);sparkle(t+.3,[1319,1760,2349],.06,.04)}
+function powerUp(){if(muted||!AC)return;const t=AC.currentTime+.01,bus=fxBus(),sr=AC.sampleRate;
+  const nz=(d)=>{const b=AC.createBuffer(1,sr*d,sr),c=b.getChannelData(0);for(let i=0;i<c.length;i++)c[i]=Math.random()*2-1;const s=AC.createBufferSource();s.buffer=b;return s};
+  // chispazo eléctrico (crepitar)
+  const cr=nz(.28),bp=AC.createBiquadFilter(),cg=AC.createGain();bp.type='bandpass';bp.frequency.value=3200;bp.Q.value=1.2;
+  cg.gain.setValueAtTime(0,t);for(let k=0;k<14;k++)cg.gain.setValueAtTime(Math.random()<.6?.35:0,t+k*.02);cg.gain.setValueAtTime(0,t+.28);
+  cr.connect(bp);bp.connect(cg);cg.connect(bus);cr.start(t);
+  // el rayo que cae
+  const z=AC.createOscillator(),zh=AC.createBiquadFilter(),zg=AC.createGain();z.type='sawtooth';z.frequency.setValueAtTime(1800,t+.12);z.frequency.exponentialRampToValueAtTime(70,t+.5);
+  zh.type='highpass';zh.frequency.value=90;zg.gain.setValueAtTime(.0001,t+.12);zg.gain.linearRampToValueAtTime(.12,t+.14);zg.gain.exponentialRampToValueAtTime(.0001,t+.55);
+  z.connect(zh);zh.connect(zg);zg.connect(bus);z.start(t+.12);z.stop(t+.6);
+  // trueno grave
+  const th=nz(1.3),lp=AC.createBiquadFilter(),tg=AC.createGain();lp.type='lowpass';lp.frequency.value=180;
+  tg.gain.setValueAtTime(.0001,t+.3);tg.gain.linearRampToValueAtTime(.9,t+.36);tg.gain.exponentialRampToValueAtTime(.0001,t+1.5);
+  th.connect(lp);lp.connect(tg);tg.connect(bus);th.start(t+.3);timpani(t+.32,49,.55);
+  // brillo mágico
+  sparkle(t+.45,[880,1109,1319,1760,2217,2637],.045,.045)}
 function sadTrombone(){if(muted||!AC)return;const t=AC.currentTime+.02;[[294,.35],[277,.35],[262,.35],[247,1.1]].reduce((tt,[f,d])=>{brass([f],tt,d,.07);return tt+d},t)}
 const SFX={
   tick:()=>tone(900,.03,'square',.04),
@@ -558,7 +573,10 @@ function banner(html,ms=1700){const b=document.createElement('div');b.className=
 function floatTxt(el,txt,cls,delay=0){setTimeout(()=>{const f=document.createElement('div');f.className='float '+cls;f.textContent=txt;el.appendChild(f);setTimeout(()=>f.remove(),1000)},delay)}
 function replay(el,cls){el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)}
 $('ver').textContent=VERSION;
-$('parade').textContent=(A.map(a=>a.e).join(' ')+' ').repeat(2);
+(function(){ // desfile del inicio: cada animal con imagen una sola vez, en orden al azar
+  const idx=A.map((_,i)=>i).filter(i=>IMG.has(A[i].k));for(let i=idx.length-1;i>0;i--){const j=ri(i+1);[idx[i],idx[j]]=[idx[j],idx[i]]}
+  const one=idx.length?idx.map(i=>`<img src="img/${A[i].k}.webp" alt="">`).join(''):[...new Set(A.map(a=>a.e))].join(' ');
+  const el=$('parade');el.innerHTML=one+one;el.style.animationDuration=Math.max(30,idx.length*2.2)+'s'})();
 let myName=t('Jugador');
 try{localStorage.removeItem('fa_name');const v=localStorage.getItem('fa_nm');if(v)$('nm').value=v}catch(e){}
 function readName(){const t=($('nm').value||'').trim().slice(0,14);myName=t||(LANG==='en'?'Player':'Jugador');statVisitName(myName);try{if(t)localStorage.setItem('fa_nm',t)}catch(e){}}
