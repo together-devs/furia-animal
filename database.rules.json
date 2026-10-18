@@ -61,6 +61,13 @@
         ".write": "!data.exists() && $did.matches(/^[a-z0-9]{12}$/)",
         ".validate": "newData.isNumber()"
       }
+    },
+    "owners": {
+      ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      "$did": {
+        ".write": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+        ".validate": "!newData.exists() || newData.val() === true"
+      }
     }
   }
 }
