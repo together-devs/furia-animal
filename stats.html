@@ -61,8 +61,8 @@ h2{margin:0 0 12px;font:400 20px var(--display)}
   </header>
 
   <section class="card gate" id="gate">
-    <p id="gate-msg">Este tablero es privado. Entrá con tu cuenta de Google para verlo.</p>
-    <button class="btn" id="in">Entrar con Google</button>
+    <p id="gate-msg">Cargando…</p>
+    <button class="btn" id="in" hidden>Entrar con Google</button>
   </section>
 
   <div id="dash" hidden style="display:flex;flex-direction:column;gap:16px">
@@ -106,7 +106,9 @@ function boot(){
   $('in').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>{$('gate-msg').innerHTML='<span class="err">No se pudo entrar: '+esc(e.message)+'</span>'});
   $('out').onclick=()=>auth.signOut();
   let offs=[];
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
   auth.onAuthStateChanged(u=>{
+    if(!u){$('gate-msg').textContent='Este tablero es privado. Entrá con tu cuenta de Google para verlo.';$('in').hidden=false}
     offs.forEach(f=>f());offs=[];
     $('gate').hidden=!!u;$('dash').hidden=!u;$('out').hidden=!u;
     $('dash').style.display=u?'flex':'none';
