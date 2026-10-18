@@ -295,7 +295,7 @@ img.em.im{display:block;width:88%;height:88%;object-fit:contain;filter:drop-shad
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v43';
+const VERSION='v44';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -545,6 +545,10 @@ function powerUp(){if(muted||!AC)return;const t=AC.currentTime+.01,bus=fxBus(),s
   th.connect(lp);lp.connect(tg);tg.connect(bus);th.start(t+.3);timpani(t+.32,49,.55);
   // brillo mágico
   sparkle(t+.45,[880,1109,1319,1760,2217,2637],.045,.045)}
+function battleStart(){if(muted||!AC)return;const t=AC.currentTime+.02; // golpe épico de inicio de pelea (original)
+  timpani(t,73,.6);brass([147,220,294],t,.13,.08);                    // ¡ta!
+  timpani(t+.16,73,.45);brass([147,220,294],t+.16,.13,.08);           // ¡ta!
+  timpani(t+.34,55,.7);brass([196,247,294,392],t+.34,.7,.085);cymbal(t+.34,.9,.14)} // ¡taaa!
 function sadTrombone(){if(muted||!AC)return;const t=AC.currentTime+.02;[[294,.35],[277,.35],[262,.35],[247,1.1]].reduce((tt,[f,d])=>{brass([f],tt,d,.07);return tt+d},t)}
 const SFX={
   tick:()=>tone(900,.03,'square',.04),
@@ -555,7 +559,7 @@ const SFX={
   block:()=>{tone(1400,.08,'triangle',.1);tone(700,.15,'triangle',.08)},
   miss:()=>tone(500,.25,'sine',.08,120),
   heal:()=>{tone(660,.1,'sine',.08);setTimeout(()=>tone(990,.15,'sine',.08),90)},
-  win:fanfare,power:powerUp,
+  win:fanfare,power:powerUp,start:battleStart,
   lose:sadTrombone
 };
 document.addEventListener('pointerdown',audio,{passive:true});
@@ -631,7 +635,7 @@ function render(){
   if(introId!==S.id){introId=S.id;shown=clone(S.p);drawBattle();statPlay();
     const f=S.p[S.turn],o=S.p[1-S.turn];
     const why=S.tie?t('¡Sorteo! '):'⚡ '+A[f.a].n+(LANG==='en'?' is faster. ':' es más rápido. ');
-    busy=true;banner(`${esc(why)}<br><span>${LANG==='en'?esc(S.names[S.turn])+' goes first!':'¡Empieza '+esc(S.names[S.turn])+'!'}</span>`,1900);SFX.land();
+    busy=true;banner(`${esc(why)}<br><span>${LANG==='en'?esc(S.names[S.turn])+' goes first!':'¡Empieza '+esc(S.names[S.turn])+'!'}</span>`,1900);
     setTimeout(()=>{busy=false;render()},1800);return}
   if(S.log&&S.log.seq>animSeq){animSeq=S.log.seq;animate(S.log);return}
   shown=clone(S.p);drawBattle();
@@ -670,7 +674,7 @@ async function doSpin(){
     spinReel($('reel-bot'),bot,3000,0).then(()=>$('r-bot-a').textContent=A[bot].n),
     spinReel($('reel-top'),top,3000,700).then(()=>$('r-top-a').textContent=A[top].n)
   ]);
-  $('vs').classList.add('on');SFX.big();
+  $('vs').classList.add('on');SFX.start();
   await new Promise(r=>setTimeout(r,1300));
   spinning=false;
   if(S.id!==sid)return render();
