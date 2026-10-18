@@ -79,6 +79,7 @@ h2{margin:0 0 12px;font:400 20px var(--display)}
       <div class="chart" id="chart"></div>
     </section>
 
+    <div style="text-align:center"><button class="btn ghost" id="reset">Reiniciar estadísticas</button><span id="reset-ask" hidden> ¿Borrar visitas, partidas, personas y nombres? <button class="btn" id="reset-yes" style="font-size:14px;padding:6px 10px">Sí, borrar todo</button> <button class="btn ghost" id="reset-no">Cancelar</button></span><div class="sub" id="reset-msg"></div></div>
     <div class="sub" style="text-align:center">Tus dispositivos no se cuentan en "Personas": <b id="k-own">0</b> marcados como tuyos. Para sumar otro, abrí este tablero desde ese dispositivo (después de haber abierto el juego ahí).</div>
     <section class="card">
       <h2>Jugadores más frecuentes</h2>
@@ -125,6 +126,11 @@ function boot(){
     const pr=db.ref('presence');pr.on('value',s=>{pres=s.val()||{};drawLive()},fail);offs.push(()=>pr.off());
     const iv=setInterval(drawLive,15000);offs.push(()=>clearInterval(iv));
     // días
+    $('reset').onclick=()=>{$('reset').hidden=true;$('reset-ask').hidden=false};
+    $('reset-no').onclick=()=>{$('reset').hidden=false;$('reset-ask').hidden=true};
+    $('reset-yes').onclick=()=>{$('reset-ask').hidden=true;$('reset-msg').textContent='Borrando…';
+      db.ref().update({days:null,uniq:null,devices:null,names:null}).then(()=>{$('reset-msg').textContent='Listo: estadísticas en cero.';$('reset').hidden=false})
+        .catch(e=>{$('reset-msg').textContent='No se pudo borrar ('+e.code+'). ¿Están publicadas las reglas nuevas?';$('reset').hidden=false})};
     let D={},U={},OWN={};
     let myDid='';try{myDid=localStorage.getItem('fa_did')||''}catch(e){}
     if(/^[a-z0-9]{12}$/.test(myDid))db.ref('owners/'+myDid).set(true).catch(()=>{});

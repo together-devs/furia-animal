@@ -18,17 +18,19 @@
     },
     "days": {
       ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      ".write": "auth != null && auth.token.email === 'david@togetherdevs.com'",
       "$day": {
         "$k": {
-          ".write": "($k === 'visits' || $k === 'plays') && $day.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
+          ".write": "newData.exists() && ($k === 'visits' || $k === 'plays') && $day.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
           ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
         }
       }
     },
     "names": {
       ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      ".write": "auth != null && auth.token.email === 'david@togetherdevs.com'",
       "$slug": {
-        ".write": "$slug.length <= 30",
+        ".write": "newData.exists() && $slug.length <= 30",
         "n": {
           ".validate": "newData.isString() && newData.val().length <= 14"
         },
@@ -48,15 +50,17 @@
     },
     "uniq": {
       ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      ".write": "auth != null && auth.token.email === 'david@togetherdevs.com'",
       "$day": {
         "$did": {
-          ".write": "$day.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && $did.matches(/^[a-z0-9]{12}$/)",
+          ".write": "newData.exists() && $day.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && $did.matches(/^[a-z0-9]{12}$/)",
           ".validate": "newData.val() === true"
         }
       }
     },
     "devices": {
       ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      ".write": "auth != null && auth.token.email === 'david@togetherdevs.com'",
       "$did": {
         ".write": "!data.exists() && $did.matches(/^[a-z0-9]{12}$/)",
         ".validate": "newData.isNumber()"
