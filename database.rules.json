@@ -4,14 +4,23 @@
       ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
       "$sid": {
         ".write": "$sid.length <= 20",
-        ".validate": "!newData.exists() || newData.hasChildren(['t'])"
+        ".validate": "!newData.exists() || newData.hasChildren(['t'])",
+        "t": {
+          ".validate": "newData.isNumber()"
+        },
+        "m": {
+          ".validate": "newData.isString() && newData.val().length <= 10"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "days": {
       ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
       "$day": {
         "$k": {
-          ".write": "($k === 'visits' || $k === 'plays') && $day.length === 10",
+          ".write": "($k === 'visits' || $k === 'plays') && $day.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
           ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
         }
       }
@@ -20,11 +29,21 @@
       ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
       "$slug": {
         ".write": "$slug.length <= 30",
-        "n": { ".validate": "newData.isString() && newData.val().length <= 14" },
-        "v": { ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)" },
-        "p": { ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)" },
-        "last": { ".validate": "newData.isNumber()" },
-        "$other": { ".validate": false }
+        "n": {
+          ".validate": "newData.isString() && newData.val().length <= 14"
+        },
+        "v": {
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
+        },
+        "p": {
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
+        },
+        "last": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     }
   }
