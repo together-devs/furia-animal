@@ -45,6 +45,22 @@
           ".validate": false
         }
       }
+    },
+    "uniq": {
+      ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      "$day": {
+        "$did": {
+          ".write": "$day.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && $did.matches(/^[a-z0-9]{12}$/)",
+          ".validate": "newData.val() === true"
+        }
+      }
+    },
+    "devices": {
+      ".read": "auth != null && auth.token.email === 'david@togetherdevs.com'",
+      "$did": {
+        ".write": "!data.exists() && $did.matches(/^[a-z0-9]{12}$/)",
+        ".validate": "newData.isNumber()"
+      }
     }
   }
 }

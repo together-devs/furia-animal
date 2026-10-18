@@ -22,8 +22,8 @@ h1{margin:0;font:400 clamp(28px,7vw,40px)/1 var(--display);color:var(--gold);tex
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 .btn.ghost{background:transparent;color:var(--mute);border-color:var(--line);box-shadow:none;font:800 13px var(--body)}
 .card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:16px;min-width:0}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-@media (max-width:560px){.kpis{grid-template-columns:1fr 1fr}.kpis .live{grid-column:1/-1}}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
 .k .lab{color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
 .k .num{font:400 44px/1.05 var(--display);font-variant-numeric:tabular-nums;margin-top:4px}
 .k .note{color:var(--mute);font-size:12px}
@@ -36,8 +36,8 @@ h2{margin:0 0 12px;font:400 20px var(--display)}
 .chart{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;align-items:end;height:170px;overflow-x:auto}
 .col{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;min-width:22px}
 .bars{display:flex;gap:2px;align-items:flex-end;flex:1;width:100%;justify-content:center}
-.bar{width:45%;max-width:14px;border-radius:4px 4px 0 0;min-height:2px}
-.bar.v{background:var(--blue)}.bar.p{background:var(--gold)}
+.bar{width:30%;max-width:12px;border-radius:4px 4px 0 0;min-height:2px}
+.bar.u{background:var(--green)}.bar.v{background:var(--blue)}.bar.p{background:var(--gold)}
 .col .d{font-size:10px;color:var(--mute);white-space:nowrap}
 .col .t{font-size:9px;color:var(--fg);font-variant-numeric:tabular-nums}
 .tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
@@ -68,13 +68,14 @@ h2{margin:0 0 12px;font:400 20px var(--display)}
   <div id="dash" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="kpis">
       <div class="card k live"><div class="lab">Jugando ahora</div><div class="num"><span class="dot"></span><span id="k-live">0</span></div><div class="note" id="k-live-note">en vivo</div></div>
+      <div class="card k"><div class="lab">Únicos hoy</div><div class="num" id="k-u">0</div><div class="note" id="k-u-note">&nbsp;</div></div>
       <div class="card k"><div class="lab">Visitas hoy</div><div class="num" id="k-v">0</div><div class="note" id="k-v-note">&nbsp;</div></div>
       <div class="card k"><div class="lab">Partidas hoy</div><div class="num" id="k-p">0</div><div class="note" id="k-p-note">&nbsp;</div></div>
     </div>
 
     <section class="card">
       <h2>Últimos 14 días</h2>
-      <div class="legend"><span><i style="background:var(--blue)"></i>Visitas</span><span><i style="background:var(--gold)"></i>Partidas</span></div>
+      <div class="legend"><span><i style="background:var(--green)"></i>Únicos</span><span><i style="background:var(--blue)"></i>Visitas</span><span><i style="background:var(--gold)"></i>Partidas</span></div>
       <div class="chart" id="chart"></div>
     </section>
 
@@ -123,16 +124,18 @@ function boot(){
     const pr=db.ref('presence');pr.on('value',s=>{pres=s.val()||{};drawLive()},fail);offs.push(()=>pr.off());
     const iv=setInterval(drawLive,15000);offs.push(()=>clearInterval(iv));
     // días
-    const dr=db.ref('days').orderByKey().limitToLast(14);
-    dr.on('value',s=>{const d=s.val()||{},t=dayKey(Date.now()),y=dayKey(Date.now()-864e5);
-      const td=d[t]||{},yd=d[y]||{};
-      $('k-v').textContent=td.visits||0;$('k-p').textContent=td.plays||0;
-      $('k-v-note').textContent='ayer: '+(yd.visits||0);$('k-p-note').textContent='ayer: '+(yd.plays||0);
+    let D={},U={};
+    const draw=()=>{const t=dayKey(Date.now()),y=dayKey(Date.now()-864e5),td=D[t]||{},yd=D[y]||{},nu=k=>Object.keys(U[k]||{}).length;
+      $('k-v').textContent=td.visits||0;$('k-p').textContent=td.plays||0;$('k-u').textContent=nu(t);
+      $('k-v-note').textContent='ayer: '+(yd.visits||0);$('k-p-note').textContent='ayer: '+(yd.plays||0);$('k-u-note').textContent='ayer: '+nu(y)+(TOT!=null?' · total: '+TOT:'');
       const keys=[];for(let i=13;i>=0;i--)keys.push(dayKey(Date.now()-i*864e5));
-      const mx=Math.max(1,...keys.map(k=>Math.max((d[k]||{}).visits||0,(d[k]||{}).plays||0)));
-      $('chart').innerHTML=keys.map(k=>{const v=(d[k]||{}).visits||0,p=(d[k]||{}).plays||0;
-        return`<div class="col" title="${k}: ${v} visitas, ${p} partidas"><div class="t">${v||''}</div><div class="bars"><div class="bar v" style="height:${v/mx*100}%"></div><div class="bar p" style="height:${p/mx*100}%"></div></div><div class="d">${+k.slice(8)}</div></div>`}).join('');
-    },fail);offs.push(()=>dr.off());
+      const mx=Math.max(1,...keys.map(k=>Math.max((D[k]||{}).visits||0,(D[k]||{}).plays||0,nu(k))));
+      $('chart').innerHTML=keys.map(k=>{const v=(D[k]||{}).visits||0,p=(D[k]||{}).plays||0,u=nu(k);
+        return`<div class="col" title="${k}: ${u} únicos, ${v} visitas, ${p} partidas"><div class="t">${u||''}</div><div class="bars"><div class="bar u" style="height:${u/mx*100}%"></div><div class="bar v" style="height:${v/mx*100}%"></div><div class="bar p" style="height:${p/mx*100}%"></div></div><div class="d">${+k.slice(8)}</div></div>`}).join('')};
+    let TOT=null;
+    const dr=db.ref('days').orderByKey().limitToLast(14);dr.on('value',s=>{D=s.val()||{};draw()},fail);offs.push(()=>dr.off());
+    const ur=db.ref('uniq').orderByKey().limitToLast(14);ur.on('value',s=>{U=s.val()||{};draw()},()=>{});offs.push(()=>ur.off());
+    const tr=db.ref('devices');tr.on('value',s=>{TOT=s.numChildren();draw()},()=>{});offs.push(()=>tr.off());
     // nombres
     const nr=db.ref('names');
     nr.on('value',s=>{const rows=Object.values(s.val()||{}).filter(r=>r&&r.n).sort((a,b)=>(b.p||0)-(a.p||0)||(b.v||0)-(a.v||0)).slice(0,30);

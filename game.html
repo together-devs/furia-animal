@@ -295,7 +295,7 @@ img.em.im{display:block;width:88%;height:88%;object-fit:contain;filter:drop-shad
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v45';
+const VERSION='v46';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -960,6 +960,8 @@ function statsInit(){
     me.onDisconnect().remove();beat();setInterval(()=>{if(!document.hidden)beat()},60000);
     document.addEventListener('visibilitychange',()=>{if(document.hidden)me.remove();else{me.onDisconnect().remove();beat()}});
     ST.db.ref('days/'+today()+'/visits').set(INC());
+    let did='';try{did=localStorage.getItem('fa_did')||'';if(!/^[a-z0-9]{12}$/.test(did)){did=Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,8);did=(did+'000000000000').slice(0,12);localStorage.setItem('fa_did',did)}}catch(e){}
+    if(did){ST.db.ref('uniq/'+today()+'/'+did).set(true).catch(()=>{});ST.db.ref('devices/'+did).set(firebase.database.ServerValue.TIMESTAMP).catch(()=>{})}
     const q=ST.q;ST.q=[];q.forEach(f=>{try{f(ST.db)}catch(e){}});
   }).catch(()=>{});
 }
