@@ -6,7 +6,7 @@
 const sharp = require('sharp');
 const path = require('path');
 
-const SIZE = +(process.env.SIZE || 384), WORK = Math.max(1024, SIZE * 2), FLIP = false; // las de Gemini ya miran a la derecha, que es como las usa el juego
+const SIZE = +(process.env.SIZE || 384), WORK = Math.max(1024, SIZE * 2), FLIP = process.env.FLIP === '1'; // las de Gemini ya miran a la derecha (como las usa el juego); FLIP=1 espeja las que miran a la izquierda
 const [outDir, ...pairs] = process.argv.slice(2);
 if (!outDir || pairs.length % 2) { console.error('uso: node procesar_imagenes.js <salida> <img> <slug> ...'); process.exit(1); }
 
