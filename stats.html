@@ -86,7 +86,7 @@ h2{margin:0 0 12px;font:400 20px var(--display)}
 </div>
 
 <script>
-const FB_CONFIG=null; // misma config que el juego
+const FB_CONFIG={apiKey:"AIzaSyDvqxhfXo9v0ZHLWVSL7oxZ3JxRgxS4XEY",authDomain:"furia-animal.firebaseapp.com",databaseURL:"https://furia-animal-default-rtdb.firebaseio.com",projectId:"furia-animal",storageBucket:"furia-animal.firebasestorage.app",messagingSenderId:"705470644551",appId:"1:705470644551:web:bbf8d9885ea1f4a8120c62"};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dayKey=ms=>new Date(ms-3*3600e3).toISOString().slice(0,10);

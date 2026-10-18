@@ -293,7 +293,7 @@ img.em.im{display:block;width:88%;height:88%;object-fit:contain;filter:drop-shad
 <script>if(!window.mqtt)document.write('<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"><\/script>')</script>
 <script>
 /* ---------- DATA ---------- */
-const VERSION='v33';
+const VERSION='v34';
 const GROUPS={
   c:{n:'Dino carnívoro',g1:'#ff7a5c',g2:'#c62f2f'},
   h:{n:'Dino gigante',g1:'#8be36a',g2:'#2f9a3a'},
@@ -893,7 +893,7 @@ function guestMsg(d){
 function sendGuest(a){myN++;pub('g',{t:a.k==='again'?'again':'act',gid,n:myN,k:a.k,i:a.i??null,sh:a.d?1:0});setTimeout(()=>{if(busy&&S&&!(S.log&&S.log.seq>animSeq)){busy=false;drawBattle()}},4000)}
 
 /* ---------- STATS (Firebase Realtime Database; se apaga solo si no hay config) ---------- */
-const FB_CONFIG=null; // se completa con la config del proyecto Firebase
+const FB_CONFIG={apiKey:"AIzaSyDvqxhfXo9v0ZHLWVSL7oxZ3JxRgxS4XEY",authDomain:"furia-animal.firebaseapp.com",databaseURL:"https://furia-animal-default-rtdb.firebaseio.com",projectId:"furia-animal",storageBucket:"furia-animal.firebasestorage.app",messagingSenderId:"705470644551",appId:"1:705470644551:web:bbf8d9885ea1f4a8120c62"};
 const ST={db:null,ok:false,sid:Math.random().toString(36).slice(2,12),names:new Set(),q:[]};
 const BOGUS=/^(jugador|jugador 2|amigo|rival)$/i;
 const today=()=>new Date(Date.now()-3*3600e3).toISOString().slice(0,10); // día de Argentina
